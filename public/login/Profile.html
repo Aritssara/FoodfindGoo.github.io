@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile</title>
+    <link rel="stylesheet" href="/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+
+</head>
+<body>
+<!--แถบเมนูด้านบน-->
+ <div id="navbar"></div>
+<script type="module">
+  fetch("/nav.html")
+    .then((res) => res.text())
+    .then((data) => {
+      document.getElementById("navbar").innerHTML = data;
+    });
+</script>
+<!--กล่องข้อความ-->
+    <section class="container-con">
+        <h1 class="profile-title">Welcome to the Profile</h1>
+        <div class="profile-item">First Name: <span id="loggedUserFName"></span></div>
+        <div class="profile-item">Last Name: <span id="loggedUserLName"></span></div>
+        <div class="profile-item">Email: <span id="loggedUserEmail"></span></div>
+        
+    </section>
+<!--รายการโปรด-->
+    <section class="favorites">
+      <h2>รายการโปรด</h2>
+    </section>
+<!--ปุ่มออกจากระบบ-->
+  <button id="logout" class="btn1">Logout</button>
+  <script type="module" src="/script.js"></script>
+  <script type="module" src="/login/profile.js"></script>
+</body>
+</html>

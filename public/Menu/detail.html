@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ร้านที่มีเมนู</title>
+  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+</head>
+<body>
+  <!-- Navbar -->
+  <div id="navbar"></div>
+  <script type="module">
+    fetch("/nav.html")
+      .then((res) => res.text())
+      .then((data) => {
+        document.getElementById("navbar").innerHTML = data;
+      });
+  </script>
+
+  <!-- Main Content -->
+  <main class="detail-container">
+    <h1>ร้านที่มีเมนู: <span id="menuName"></span></h1>
+    <div class="detail-content">
+      <div class="restaurant-list" id="restaurantList"></div>
+      <div id="map"></div>
+    </div>
+  </main>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script type="module" src="/Menu/detail.js"></script> <!-- แยก JS ออกไปจะดีกว่า -->
+  <script type="module" src="/script.js"></script>
+</body>
+</html>

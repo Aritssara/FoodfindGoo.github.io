@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Admin Dashboard</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    input, button, select, textarea {
+      margin: 5px 0;
+      padding: 6px;
+      font-size: 1rem;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .menu-card {
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      padding: 10px;
+      margin-bottom: 10px;
+    }
+    img {
+      max-width: 150px;
+      display: block;
+      margin-top: 5px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Admin Dashboard</h1>
+
+  <!-- ฟอร์มเพิ่มร้านอาหาร -->
+  <h2>เพิ่มร้านอาหาร</h2>
+  <input id="restaurantName" placeholder="ชื่อร้าน" /><br />
+  <input id="restaurantImage" placeholder="URL รูปภาพร้าน" /><br />
+  <input id="restaurantLat" placeholder="ละติจูด (Latitude)" /><br />
+  <input id="restaurantLng" placeholder="ลองจิจูด (Longitude)" /><br />
+  <button onclick="addRestaurant()">เพิ่มร้านอาหาร</button>
+
+  <hr />
+
+  <!-- ฟอร์มเพิ่มเมนู -->
+  <h2>เพิ่มเมนูอาหาร</h2>
+  <select id="restaurantSelect">
+    <option value="">-- เลือกร้านอาหาร --</option>
+  </select><br />
+  <input id="menuName" placeholder="ชื่อเมนู" /><br />
+  <input id="menuPrice" type="number" placeholder="ราคา" /><br />
+  <input id="menuType" placeholder="ประเภท" /><br />
+  <input id="menuImage" placeholder="URL รูปภาพเมนู" /><br />
+  <textarea id="menuDescription" placeholder="รายละเอียดเมนู"></textarea><br />
+  <button onclick="addMenu()">เพิ่มเมนู</button>
+
+  <hr />
+
+  <!-- แสดงรายการเมนูทั้งหมด -->
+  <h2>รายการเมนูทั้งหมด</h2>
+  <div id="menuList"></div>
+
+<script>
+  // โหลดตัวเลือกร้านอาหาร
+  async function loadRestaurantOptions() {
+    try {
+      const res = await fetch('/api/restaurants');
+      const data = await res.json();
+      const select = document.getElementById('restaurantSelect');
+      select.innerHTML = '<option value="">-- เลือกร้านอาหาร --</option>';
+      data.forEach(r => {
+        const opt = document.createElement('option');
+        opt.value = r._id;
+        opt.textContent = r.name;
+        select.appendChild(opt);
+      });
+    } catch (error) {
+      alert('โหลดร้านอาหารล้มเหลว: ' + error.message);
+    }
+  }
+
+  // เพิ่มร้านอาหาร
+  async function addRestaurant() {
+    const name = document.getElementById('restaurantName').value.trim();
+    const image = document.getElementById('restaurantImage').value.trim();
+    const lat = parseFloat(document.getElementById('restaurantLat').value);
+    const lng = parseFloat(document.getElementById('restaurantLng').value);
+
+    if (!name || !image || isNaN(lat) || isNaN(lng)) {
+      alert('กรุณากรอกข้อมูลร้านอาหารให้ครบและถูกต้อง');
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/restaurants', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name,
+          image,
+          location: {
+            type: 'Point',
+            coordinates: [lng, lat]
+          }
+        })
+      });
+      if (!res.ok) throw new Error('ไม่สามารถเพิ่มร้านอาหารได้');
+
+      alert('เพิ่มร้านอาหารเรียบร้อยแล้ว');
+      document.getElementById('restaurantName').value = '';
+      document.getElementById('restaurantImage').value = '';
+      document.getElementById('restaurantLat').value = '';
+      document.getElementById('restaurantLng').value = '';
+
+      await loadRestaurantOptions();
+    } catch (error) {
+      alert('เกิดข้อผิดพลาด: ' + error.message);
+    }
+  }
+
+  // เพิ่มเมนูอาหาร
+  async function addMenu() {
+    const name = document.getElementById('menuName').value.trim();
+    const price = parseFloat(document.getElementById('menuPrice').value);
+    const type = document.getElementById('menuType').value.trim();
+    const image = document.getElementById('menuImage').value.trim();
+    const description = document.getElementById('menuDescription').value.trim();
+    const restaurantId = document.getElementById('restaurantSelect').value;
+
+    if (!name || isNaN(price) || !type || !restaurantId || !image || !description) {
+      alert('กรุณากรอกข้อมูลเมนูให้ครบ');
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/menus', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, price, type, image, description, restaurantId })
+      });
+      if (!res.ok) throw new Error('ไม่สามารถเพิ่มเมนูได้');
+
+      alert('เพิ่มเมนูอาหารเรียบร้อยแล้ว');
+      document.getElementById('menuName').value = '';
+      document.getElementById('menuPrice').value = '';
+      document.getElementById('menuType').value = '';
+      document.getElementById('menuImage').value = '';
+      document.getElementById('menuDescription').value = '';
+
+      await loadMenus();
+    } catch (error) {
+      alert('เกิดข้อผิดพลาด: ' + error.message);
+    }
+  }
+
+  // โหลดเมนูทั้งหมด
+  async function loadMenus() {
+    try {
+      const res = await fetch('/api/menus');
+      const menus = await res.json();
+
+      const container = document.getElementById('menuList');
+      container.innerHTML = '';
+
+      menus.forEach(menu => {
+        const div = document.createElement('div');
+        div.className = 'menu-card';
+        div.innerHTML = `
+          <p><strong>${menu.name}</strong> (${menu.type}) - ${menu.price} บาท</p>
+          <p>รายละเอียด: ${menu.description || 'ไม่มีรายละเอียด'}</p>
+          <img src="${menu.image || ''}" alt="รูปเมนู: ${menu.name}" />
+          <p>ร้าน: ${menu.restaurant?.name || 'ไม่ระบุร้าน'}</p>
+          <img src="${menu.restaurant?.image || ''}" alt="รูปของร้าน: ${menu.restaurant?.name || ''}" />
+        `;
+        container.appendChild(div);
+      });
+    } catch (error) {
+      alert('โหลดเมนูล้มเหลว: ' + error.message);
+    }
+  }
+
+  window.addEventListener('DOMContentLoaded', () => {
+    loadRestaurantOptions();
+    loadMenus();
+  });
+</script>
+
+</body>
+</html>
