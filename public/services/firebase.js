@@ -12,8 +12,8 @@ const firebaseConfig = {
   appId: "1:359944908271:web:514897139121b86ebada1a",
   measurementId: "G-WSTBP08YH2"
 };
-// Initialize Firebase
- const app = initializeApp(firebaseConfig);
+ // Initialize Firebase
+const app = initializeApp(firebaseConfig);
 
  function showMessage(message, divId){
     var messageDiv=document.getElementById(divId);

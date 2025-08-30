@@ -1,68 +1,67 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="th">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>หน้าหลัก</title>
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="/assets/css/style.css?v=clamp4">
+  <link rel="stylesheet" href="/assets/css/menu.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-  <script src="https://maps.googleapis.com/maps/api/js?key=API = AIzaSyD7IwXVE9Ki3bd2IrKgPoO8BfWXJEEd8Yc"></script>
-
 </head>
 <body>
   <!-- แถบเมนู -->
-<div id="navbar"></div>
+  <div id="navbar"></div>
+  <script type="module">
+    fetch("/nav.html")
+      .then((res) => res.text())
+      .then((data) => { document.getElementById("navbar").innerHTML = data; })
+      .catch(() => {
+        document.getElementById("navbar").innerHTML = '<nav class="fallback-nav">FoodFindGo</nav>';
+      });
+  </script>
 
-<script type="module">
-  fetch("/nav.html")
-    .then((res) => res.text())
-    .then((data) => {
-      document.getElementById("navbar").innerHTML = data
-    });
-</script>
-<!-- กล่องแถบสีส้ม -->
+  <!-- Hero -->
   <section class="maincontent">
     <div class="container">
       <div class="maincontent-con">
         <div class="maincontent-info">
           <h3>FoodFindGo</h3>
           <p>Recommend Food Menus And Find Restaurants In Nearby Areas</p>
-          <a href="menu.html" class="maincontent-btn">เพิ่มเติม</a>
-        </div>
-        <div class="maincontent-img">
-          <img src="/background/รวมเมนู.jpg" alt="">
         </div>
       </div>
     </div>
   </section>
-  <!--แสดงเมนูต่างๆ-->
- <section class="content">
-  <div class="container">
-    <h3>แสดงรายการอาหาร</h3>
-    <div class="content-con" id="menu-list"></div>
-    
-  </div>
-</section>
-<!--ส่วนล่างสุด-->
-<div class="footer-top">
-  <div class="container">
-    <div class="footer-top-con">
-      <div class="footer-top-item">
-        <h4>รายการอาหาร</h4>
-        <div class="footer-top-item-con">
-          <div class="date">
-            ก.ค <br>
-            24
-          </div>
-          <div class="info">
-            <span class="info-title">Lorem ipsum dolor sit amet.</span>
+
+  <!-- เมนู -->
+  <main class="container">
+    <section class="cat-wrapper" aria-label="เลือกหมวดเมนู">
+      <div id="catScroller" class="cat-scroller"></div>
+    </section>
+
+    <div id="state" class="muted state"></div>
+
+    <section class="card-menu">
+      <ul id="menuList" class="menu-list"></ul>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer-top">
+    <div class="container">
+      <div class="footer-top-con">
+        <div class="footer-top-item">
+          <h4>รายการอาหาร</h4>
+          <div class="footer-top-item-con">
+            <div class="date">ก.ค <br> 24</div>
+            <div class="info"><span class="info-title">Lorem ipsum dolor sit amet.</span></div>
           </div>
         </div>
       </div>
     </div>
-  </div>
-</div>
-<div class="footer-buttom"></div>
-<script type="module" src="/script.js"></script>
+  </footer>
+
+  <!-- Scripts เดิม -->
+  <script type="module" src="/Menu/menu.js"></script>
+  <script type="module" src="/script.js"></script>
 </body>
 </html>

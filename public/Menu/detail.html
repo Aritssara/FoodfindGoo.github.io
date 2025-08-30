@@ -2,33 +2,94 @@
 <html lang="th">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>ร้านที่มีเมนู</title>
-  <link rel="stylesheet" href="/style.css">
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>รายละเอียดเมนู</title>
+
+  <link rel="stylesheet" href="/assets/css/style.css" />
+  <link rel="stylesheet" href="/assets/css/detail.css" />
+
+  <!-- Leaflet (OSM) -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 </head>
 <body>
   <!-- Navbar -->
   <div id="navbar"></div>
-  <script type="module">
-    fetch("/nav.html")
-      .then((res) => res.text())
-      .then((data) => {
-        document.getElementById("navbar").innerHTML = data;
-      });
+  <script>
+    fetch("/nav.html").then(r=>r.text()).then(html=>{
+      document.getElementById("navbar").innerHTML = html;
+    });
   </script>
 
-  <!-- Main Content -->
-  <main class="detail-container">
-    <h1>ร้านที่มีเมนู: <span id="menuName"></span></h1>
-    <div class="detail-content">
-      <div class="restaurant-list" id="restaurantList"></div>
-      <div id="map"></div>
-    </div>
+  <main class="detail">
+    <!-- ซ้าย: รายละเอียดเมนู -->
+    <section class="card detail__menu">
+      <div class="hero-wrap shimmer">
+        <img id="menuImage" src="/images/default-food.jpg" alt="ภาพเมนู" class="detail__hero" loading="lazy">
+      </div>
+      <div class="card__body">
+        <h1 id="menuName" class="detail__title skeleton-line"></h1>
+
+        <div class="badges">
+          <span class="badge" id="menuPrice">ราคาไม่ระบุ</span>
+          <span class="badge" id="menuType">ประเภท: -</span>
+          <span class="badge" aria-label="จำนวนผู้ชมหน้านี้"><i>👁</i> <span id="menuViews">0</span> วิว</span>
+        </div>
+
+        <p id="menuDesc" class="muted skeleton-paragraph"></p>
+
+        <div class="actions">
+          <button id="saveBtn" class="btn btn--primary" aria-live="polite">☆ บันทึกเมนู</button>
+          <button id="shareBtn" class="btn btn--outline">แชร์</button>
+        </div>
+        <p id="saveHint" class="muted actions__hint" aria-live="polite"></p>
+      </div>
+    </section>
+
+    <!-- ขวา: แผนที่ + ที่อยู่ + ติดต่อ -->
+    <aside class="card detail__route">
+      <!-- OSM/Leaflet ใช้กล่องเดียว -->
+      <div id="map" class="map" aria-label="แผนที่ OSM แสดงตำแหน่งและเส้นทาง"></div>
+
+      <div class="card__body">
+        <h2 class="section-title">แผนที่ & ที่อยู่</h2>
+
+        <div class="kv"><b>ร้าน:</b> <span id="shopName">-</span></div>
+        <div class="kv"><b>ถนน/เส้นทาง:</b> <span id="roadName">-</span></div>
+        <div class="kv"><b>ที่อยู่โดยย่อ:</b> <span id="prettyAddr">-</span></div>
+
+        <div class="controls">
+          <button id="recenter" class="btn btn--outline">เล็งตำแหน่งฉัน / Fit เส้นทาง</button>
+        </div>
+
+        <h3 class="section-subtitle">ช่องทางการติดต่อ</h3>
+        <div class="contacts">
+          <div class="kv"><b>โทร:</b> <a id="contactPhone" href="#" class="link">-</a></div>
+          <div class="kv" id="contactExtraWrap" style="display:none"><b>อื่น ๆ:</b> <span id="contactExtra"></span></div>
+        </div>
+
+        <p id="geoStatus" class="muted geo-status"></p>
+      </div>
+    </aside>
   </main>
 
+  <!-- เพิ่มเติมใต้คอลัมน์หลัก -->
+  <section class="container blocks">
+    <div class="block">
+      <h2 class="section-title">เมนูเพิ่มเติมของร้านนี้</h2>
+      <div id="moreMenus" class="tiles"></div>
+      <p id="moreMenusEmpty" class="muted" style="display:none">— ไม่มีเมนูอื่น —</p>
+    </div>
+
+    <div class="block">
+      <h2 class="section-title">ร้านใกล้เคียง (OSM)</h2>
+      <div id="otherShops" class="tiles"></div>
+      <p id="otherShopsEmpty" class="muted" style="display:none">— ยังไม่พบร้านอื่น —</p>
+    </div>
+  </section>
+
+  <!-- Leaflet -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script type="module" src="/Menu/detail.js"></script> <!-- แยก JS ออกไปจะดีกว่า -->
-  <script type="module" src="/script.js"></script>
+  <!-- Page script (เวอร์ชัน OSM-only) -->
+  <script type="module" src="/Menu/detail.js"></script>
 </body>
 </html>

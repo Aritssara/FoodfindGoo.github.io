@@ -5,25 +5,22 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Admin Dashboard</title>
   <style>
-    body { font-family: Arial, sans-serif; margin: 20px; }
+    :root { --primary:#ffaa0d; --muted:#666; }
+    body { font-family: Arial, sans-serif; margin: 20px; background:#fafafa; color:#111; }
+    h1,h2 { margin: 8px 0 6px; }
     input, button, select, textarea {
-      margin: 5px 0;
-      padding: 6px;
-      font-size: 1rem;
-      width: 100%;
-      box-sizing: border-box;
+      margin: 5px 0; padding: 10px; font-size: 1rem; width: 100%; box-sizing: border-box;
+      border:1px solid #e5e7eb; border-radius:10px; background:#fff;
     }
-    .menu-card {
-      border: 1px solid #ccc;
-      border-radius: 5px;
-      padding: 10px;
-      margin-bottom: 10px;
-    }
-    img {
-      max-width: 150px;
-      display: block;
-      margin-top: 5px;
-    }
+    button { cursor: pointer; background:#111; color:#fff; }
+    button.primary { background: var(--primary); color:#111; border:none; }
+    .row { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px; }
+    .card  { background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:14px; margin:12px 0; box-shadow:0 8px 18px rgba(0,0,0,.06); }
+    .menu-card { border:1px solid #e5e7eb; border-radius:10px; padding:10px; margin-bottom:10px; background:#fff; }
+    .muted { color: var(--muted); font-size: .9rem; }
+    img { max-width: 150px; display: block; margin-top: 5px; border-radius:10px; }
+    label.inline { display:flex; align-items:center; gap:8px; }
+    .grid { display:grid; gap:10px; }
   </style>
 </head>
 <body>
@@ -31,39 +28,60 @@
   <h1>Admin Dashboard</h1>
 
   <!-- ฟอร์มเพิ่มร้านอาหาร -->
-  <h2>เพิ่มร้านอาหาร</h2>
-  <input id="restaurantName" placeholder="ชื่อร้าน" /><br />
-  <input id="restaurantImage" placeholder="URL รูปภาพร้าน" /><br />
-  <input id="restaurantLat" placeholder="ละติจูด (Latitude)" /><br />
-  <input id="restaurantLng" placeholder="ลองจิจูด (Longitude)" /><br />
-  <button onclick="addRestaurant()">เพิ่มร้านอาหาร</button>
-
-  <hr />
+  <div class="card">
+    <h2>เพิ่มร้านอาหาร</h2>
+    <div class="row">
+      <div><input id="restaurantName" placeholder="ชื่อร้าน" /></div>
+      <div><input id="restaurantImage" placeholder="URL รูปภาพร้าน" /></div>
+      <div><input id="restaurantLat" placeholder="ละติจูด (Latitude)" /></div>
+      <div><input id="restaurantLng" placeholder="ลองจิจูด (Longitude)" /></div>
+      <div><input id="restaurantAddress" placeholder="ที่อยู่ (ไม่บังคับ)" /></div>
+      <div><input id="restaurantPhone" placeholder="เบอร์โทร (ไม่บังคับ)" /></div>
+    </div>
+    <button class="primary" onclick="addRestaurant()">เพิ่มร้านอาหาร</button>
+    <div class="muted">หมายเหตุ: ระบบจะสร้างพิกัด GeoJSON จากค่า lng/lat ให้โดยอัตโนมัติ</div>
+  </div>
 
   <!-- ฟอร์มเพิ่มเมนู -->
-  <h2>เพิ่มเมนูอาหาร</h2>
-  <select id="restaurantSelect">
-    <option value="">-- เลือกร้านอาหาร --</option>
-  </select><br />
-  <input id="menuName" placeholder="ชื่อเมนู" /><br />
-  <input id="menuPrice" type="number" placeholder="ราคา" /><br />
-  <input id="menuType" placeholder="ประเภท" /><br />
-  <input id="menuImage" placeholder="URL รูปภาพเมนู" /><br />
-  <textarea id="menuDescription" placeholder="รายละเอียดเมนู"></textarea><br />
-  <button onclick="addMenu()">เพิ่มเมนู</button>
+  <div class="card">
+    <h2>เพิ่มเมนูอาหาร</h2>
+    <div class="row">
+      <div>
+        <select id="restaurantSelect">
+          <option value="">-- เลือกร้านอาหาร --</option>
+        </select>
+      </div>
+      <div><input id="menuName" placeholder="ชื่อเมนู" /></div>
+      <div><input id="menuPrice" type="number" placeholder="ราคา" /></div>
+      <div><input id="menuType" placeholder="ประเภท" /></div>
+      <div><input id="menuImage" placeholder="URL รูปภาพเมนู" /></div>
+    </div>
+    <textarea id="menuDescription" placeholder="รายละเอียดเมนู"></textarea>
 
-  <hr />
 
+    <button class="primary" onclick="addMenu()">เพิ่มเมนู</button>
+    <div class="muted">คำแนะนำ: เมนูที่ติ๊ก <code>isFeatured</code> และตั้ง <code>featuredBoost</code> จะมีคะแนนสูงขึ้นใน “ยอดฮิต”</div>
+  </div>
   <!-- แสดงรายการเมนูทั้งหมด -->
-  <h2>รายการเมนูทั้งหมด</h2>
-  <div id="menuList"></div>
+  <div class="card">
+    <h2>รายการเมนูทั้งหมด</h2>
+    <div id="menuList"></div>
+  </div>
 
 <script>
+  // === Utils ===
+  const jfetch = async (url, opts={}) => {
+    const res = await fetch(url, opts);
+    const data = await res.json().catch(()=> ({}));
+    if (!res.ok) { throw new Error(data?.error || data?.message || ('HTTP '+res.status)); }
+    return data;
+  };
+  const clear = (ids) => ids.forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+
   // โหลดตัวเลือกร้านอาหาร
   async function loadRestaurantOptions() {
     try {
-      const res = await fetch('/api/restaurants');
-      const data = await res.json();
+      const data = await jfetch('/api/restaurants');
       const select = document.getElementById('restaurantSelect');
       select.innerHTML = '<option value="">-- เลือกร้านอาหาร --</option>';
       data.forEach(r => {
@@ -77,46 +95,35 @@
     }
   }
 
-  // เพิ่มร้านอาหาร
+  // เพิ่มร้านอาหาร (ใช้ lng/lat ตรงตาม API)
   async function addRestaurant() {
     const name = document.getElementById('restaurantName').value.trim();
     const image = document.getElementById('restaurantImage').value.trim();
     const lat = parseFloat(document.getElementById('restaurantLat').value);
     const lng = parseFloat(document.getElementById('restaurantLng').value);
+    const address = document.getElementById('restaurantAddress').value.trim();
+    const phone = document.getElementById('restaurantPhone').value.trim();
 
-    if (!name || !image || isNaN(lat) || isNaN(lng)) {
-      alert('กรุณากรอกข้อมูลร้านอาหารให้ครบและถูกต้อง');
+    if (!name || isNaN(lat) || isNaN(lng)) {
+      alert('กรุณากรอกชื่อร้าน + พิกัดให้ถูกต้อง');
       return;
     }
-
     try {
-      const res = await fetch('/api/restaurants', {
+      const payload = { name, image, address, phone, lat, lng };
+      await jfetch('/api/restaurants', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name,
-          image,
-          location: {
-            type: 'Point',
-            coordinates: [lng, lat]
-          }
-        })
+        body: JSON.stringify(payload)
       });
-      if (!res.ok) throw new Error('ไม่สามารถเพิ่มร้านอาหารได้');
-
       alert('เพิ่มร้านอาหารเรียบร้อยแล้ว');
-      document.getElementById('restaurantName').value = '';
-      document.getElementById('restaurantImage').value = '';
-      document.getElementById('restaurantLat').value = '';
-      document.getElementById('restaurantLng').value = '';
-
+      clear(['restaurantName','restaurantImage','restaurantLat','restaurantLng','restaurantAddress','restaurantPhone']);
       await loadRestaurantOptions();
     } catch (error) {
       alert('เกิดข้อผิดพลาด: ' + error.message);
     }
   }
 
-  // เพิ่มเมนูอาหาร
+  // เพิ่มเมนูอาหาร (ตัด status ออก เหลือ isFeatured/featuredBoost)
   async function addMenu() {
     const name = document.getElementById('menuName').value.trim();
     const price = parseFloat(document.getElementById('menuPrice').value);
@@ -125,38 +132,55 @@
     const description = document.getElementById('menuDescription').value.trim();
     const restaurantId = document.getElementById('restaurantSelect').value;
 
-    if (!name || isNaN(price) || !type || !restaurantId || !image || !description) {
-      alert('กรุณากรอกข้อมูลเมนูให้ครบ');
+    const isFeatured = document.getElementById('menuIsFeatured').checked;
+    const featuredBoost = parseInt(document.getElementById('menuFeaturedBoost').value || '0', 10);
+
+    if (!name || isNaN(price) || !type || !restaurantId) {
+      alert('กรุณากรอกชื่อเมนู/ราคา/ประเภท/เลือกร้าน');
       return;
     }
 
     try {
-      const res = await fetch('/api/menus', {
+      const payload = { name, price, type, image, description, restaurantId, isFeatured, featuredBoost };
+      await jfetch('/api/menus', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, price, type, image, description, restaurantId })
+        body: JSON.stringify(payload)
       });
-      if (!res.ok) throw new Error('ไม่สามารถเพิ่มเมนูได้');
-
       alert('เพิ่มเมนูอาหารเรียบร้อยแล้ว');
-      document.getElementById('menuName').value = '';
-      document.getElementById('menuPrice').value = '';
-      document.getElementById('menuType').value = '';
-      document.getElementById('menuImage').value = '';
-      document.getElementById('menuDescription').value = '';
-
+      clear(['menuName','menuPrice','menuType','menuImage','menuDescription','menuFeaturedBoost']);
+      document.getElementById('menuIsFeatured').checked = false;
       await loadMenus();
     } catch (error) {
       alert('เกิดข้อผิดพลาด: ' + error.message);
     }
   }
 
-  // โหลดเมนูทั้งหมด
+  // อัปเดตบูสต์ของเมนู (PATCH) — ไม่ยุ่งกับ status
+  async function updateMenuFlags() {
+    const id = document.getElementById('editMenuId').value.trim();
+    const isFeatured = document.getElementById('editFeatured').checked;
+    const featuredBoost = parseInt(document.getElementById('editBoost').value || '0', 10);
+
+    if (!id) { alert('กรอก menuId'); return; }
+    try {
+      const body = { isFeatured, featuredBoost };
+      await jfetch('/api/menus/' + encodeURIComponent(id), {
+        method: 'PATCH',
+        headers: { 'Content-Type':'application/json' },
+        body: JSON.stringify(body)
+      });
+      alert('อัปเดตสำเร็จ');
+      await loadMenus();
+    } catch (error) {
+      alert('อัปเดตไม่สำเร็จ: ' + error.message);
+    }
+  }
+
+  // โหลดเมนูทั้งหมด (ไม่แสดง status แล้ว)
   async function loadMenus() {
     try {
-      const res = await fetch('/api/menus');
-      const menus = await res.json();
-
+      const menus = await jfetch('/api/menus');
       const container = document.getElementById('menuList');
       container.innerHTML = '';
 
@@ -164,11 +188,12 @@
         const div = document.createElement('div');
         div.className = 'menu-card';
         div.innerHTML = `
-          <p><strong>${menu.name}</strong> (${menu.type}) - ${menu.price} บาท</p>
+          <p><strong>${menu.name}</strong> (${menu.type || '-'}) - ${menu.price ?? '-'} บาท</p>
           <p>รายละเอียด: ${menu.description || 'ไม่มีรายละเอียด'}</p>
+          <p class="muted">isFeatured: <b>${menu.isFeatured ? 'true' : 'false'}</b> • featuredBoost: <b>${menu.featuredBoost || 0}</b></p>
           <img src="${menu.image || ''}" alt="รูปเมนู: ${menu.name}" />
           <p>ร้าน: ${menu.restaurant?.name || 'ไม่ระบุร้าน'}</p>
-          <img src="${menu.restaurant?.image || ''}" alt="รูปของร้าน: ${menu.restaurant?.name || ''}" />
+          ${menu.restaurant?.image ? `<img src="${menu.restaurant.image}" alt="รูปของร้าน: ${menu.restaurant.name}" />` : ''}
         `;
         container.appendChild(div);
       });
