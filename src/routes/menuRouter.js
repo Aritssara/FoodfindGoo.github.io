@@ -1,105 +1,146 @@
-const express = require('express');
+// routes/menuRouter.js
+const express = require("express");
 const router = express.Router();
-const crypto = require('crypto');
-const Menu = require('../models/Menu');
-const Restaurant = require('../models/Restaurant');
+const Menu = require("../models/Menu");
 
-// สร้างเมนู
-router.post('/', async (req, res) => {
+// GET /api/menus?restaurantId=&q=&limit=
+router.get("/", async (req, res) => {
   try {
-    const { name, price, type, image, description, restaurantId, status, isFeatured, featuredBoost } = req.body;
-    const rest = await Restaurant.findById(restaurantId);
-    if (!rest) return res.status(404).json({ error: 'ไม่พบร้านอาหาร' });
-    if (!name) return res.status(400).json({ error: 'ต้องระบุชื่อเมนู' });
+    const { restaurantId, q, limit = 100 } = req.query;
+    const query = {};
+    if (restaurantId) query.restaurant = restaurantId;
+    if (q) query.name = new RegExp(q, "i");
 
-    const m = await Menu.create({
-      name,
-      price,
-      type,
-      image,
-      description,
-      restaurant: rest._id,
-      status: status || 'draft',
-      isFeatured: !!isFeatured,
-      featuredBoost: Number(featuredBoost) || 0
-    });
-    res.status(201).json(m);
+    const items = await Menu.find(query)
+      .limit(Math.min(parseInt(limit, 10) || 100, 500))
+      .populate("restaurant", "name image");
+
+    res.json(items);
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
 });
 
-// ดึงเมนูทั้งหมด (ให้หน้า /Menu/menu.html ใช้)
-router.get('/', async (_req, res) => {
-  const menus = await Menu.find().populate('restaurant', 'name image');
-  res.json(menus);
+// GET /api/menus/popular  (ตัวอย่าง: จัดอันดับจาก isFeatured/featuredBoost + นับ views)
+router.get("/popular", async (req, res) => {
+  try {
+    const limit = Math.min(parseInt(req.query.limit || "20", 10), 100);
+    const items = await Menu.find({})
+      .sort({ isFeatured: -1, featuredBoost: -1, "stats.views": -1, updatedAt: -1 })
+      .limit(limit)
+      .populate("restaurant", "name image");
+    res.json(items);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
-// ดึง Top N ยอดฮิต พร้อมคะแนน (score)
-router.get('/popular', async (req, res) => {
+// GET /api/menus/:idOrName  (ลองหาโดย id ไม่เจอค่อยหาโดยชื่อ)
+router.get("/:idOrName", async (req, res) => {
   try {
-    const limit = Math.max(1, Math.min(parseInt(req.query.limit || '10', 10), 50));
-    const items = await Menu.find({ status: 'published' }).lean();
+    const { idOrName } = req.params;
+    let item = null;
+    if (idOrName.match(/^[0-9a-fA-F]{24}$/)) {
+      item = await Menu.findById(idOrName).populate("restaurant");
+    }
+    if (!item) {
+      item = await Menu.findOne({ name: idOrName }).populate("restaurant");
+    }
+    if (!item) return res.status(404).json({ error: "not found" });
 
-    const scored = items.map(m => {
-      const views = m?.stats?.views || 0;
-      const boost = (m.isFeatured ? 50 : 0) + (m.featuredBoost || 0) * 10;
-      const recencyDays = m.createdAt ? Math.max(1, (Date.now() - new Date(m.createdAt)) / (1000 * 60 * 60 * 24)) : 30;
-      const recencyBonus = 30 / recencyDays; // newer = higher
-      const score = Math.round(views + boost + recencyBonus);
-      return { ...m, score };
-    }).sort((a, b) => b.score - a.score).slice(0, limit);
+    // อัปเดต views แบบเบา ๆ
+    try {
+      await Menu.updateOne({ _id: item._id }, { $inc: { "stats.views": 1 } });
+      item.stats = { ...(item.stats || {}), views: (item.stats?.views || 0) + 1 };
+    } catch {}
 
-    res.json(scored);
-  } catch (e) { res.status(500).json({ error: e.message }); }
+    res.json(item);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
-// ดึงเมนูตาม id หรือชื่อ + บันทึก view + impression
-router.get('/:id', async (req, res) => {
+// POST /api/menus
+// body: { name, price, type, image, description, restaurantId, isFeatured, featuredBoost }
+router.post("/", async (req, res) => {
   try {
-    const key = req.params.id;
-    const isObjectId = /^[0-9a-fA-F]{24}$/.test(key);
-    const q = isObjectId ? { _id: key } : { name: key };
+    const { name, price, type, image, description, restaurantId, isFeatured, featuredBoost } = req.body;
+    if (!name || !restaurantId) return res.status(400).json({ error: "ต้องระบุ name และ restaurantId" });
 
-    const m = await Menu.findOneAndUpdate(
-      q,
+    const doc = await Menu.create({
+      name,
+      price,
+      type,
+      image,
+      description,
+      restaurant: restaurantId,
+      isFeatured: !!isFeatured,
+      featuredBoost: Number.isFinite(+featuredBoost) ? +featuredBoost : 0,
+      stats: { views: 0 }
+    });
+    const saved = await Menu.findById(doc._id).populate("restaurant", "name image");
+    res.status(201).json(saved);
+  } catch (e) {
+    res.status(400).json({ error: e.message });
+  }
+});
+
+// PATCH /api/menus/:id  (อัปเดตเฉพาะธงเด่น/บูสต์ หรือฟิลด์ย่อยที่ส่งมา)
+router.patch("/:id", async (req, res) => {
+  try {
+    const upd = {};
+    if ("isFeatured" in req.body) upd.isFeatured = !!req.body.isFeatured;
+    if ("featuredBoost" in req.body) upd.featuredBoost = Number(req.body.featuredBoost) || 0;
+    if ("name" in req.body) upd.name = req.body.name;
+    if ("price" in req.body) upd.price = req.body.price;
+    if ("type" in req.body) upd.type = req.body.type;
+    if ("image" in req.body) upd.image = req.body.image;
+    if ("description" in req.body) upd.description = req.body.description;
+    if ("restaurantId" in req.body) upd.restaurant = req.body.restaurantId;
+
+    const item = await Menu.findByIdAndUpdate(req.params.id, upd, { new: true })
+      .populate("restaurant", "name image");
+    if (!item) return res.status(404).json({ error: "ไม่พบเมนู" });
+    res.json(item);
+  } catch (e) {
+    res.status(400).json({ error: e.message });
+  }
+});
+
+// PUT /api/menus/:id  (อัปเดตเต็ม)
+router.put("/:id", async (req, res) => {
+  try {
+    const { name, price, type, image, description, restaurantId, isFeatured, featuredBoost } = req.body;
+    const item = await Menu.findByIdAndUpdate(
+      req.params.id,
       {
-        $inc: { 'stats.views': 1 },
-        $push: {
-          'stats.impressions': {
-            at: new Date(),
-            ipHash: crypto.createHash('sha256').update((req.ip || '') + (req.headers['user-agent'] || '')).digest('hex').slice(0, 16),
-            ua: req.headers['user-agent'] || ''
-          }
-        }
+        name,
+        price,
+        type,
+        image,
+        description,
+        restaurant: restaurantId,
+        isFeatured: !!isFeatured,
+        featuredBoost: Number.isFinite(+featuredBoost) ? +featuredBoost : 0
       },
       { new: true }
-    ).populate('restaurant', 'name image location');
-
-    if (!m) return res.status(404).json({ error: 'ไม่พบเมนู' });
-    res.json(m);
-  } catch (e) { res.status(400).json({ error: e.message }); }
+    ).populate("restaurant", "name image");
+    if (!item) return res.status(404).json({ error: "ไม่พบเมนู" });
+    res.json(item);
+  } catch (e) {
+    res.status(400).json({ error: e.message });
+  }
 });
 
-// อัปเดตสถานะเผยแพร่ / isFeatured / featuredBoost (สำหรับแอดมิน)
-router.patch('/:id', async (req, res) => {
+// DELETE /api/menus/:id
+router.delete("/:id", async (req, res) => {
   try {
-    const { status, isFeatured, featuredBoost, name, price, type, image, description, restaurantId } = req.body;
-    const update = {};
-    if (status) update.status = status;
-    if (typeof isFeatured === 'boolean') update.isFeatured = isFeatured;
-    if (featuredBoost !== undefined) update.featuredBoost = Number(featuredBoost) || 0;
-    if (name !== undefined) update.name = name;
-    if (price !== undefined) update.price = Number(price) || 0;
-    if (type !== undefined) update.type = type;
-    if (image !== undefined) update.image = image;
-    if (description !== undefined) update.description = description;
-    if (restaurantId) update.restaurant = restaurantId;
-
-    const m = await Menu.findByIdAndUpdate(req.params.id, update, { new: true });
-    if (!m) return res.status(404).json({ error: 'ไม่พบเมนู' });
-    res.json(m);
-  } catch (e) { res.status(400).json({ error: e.message }); }
+    const item = await Menu.findByIdAndDelete(req.params.id);
+    if (!item) return res.status(404).json({ error: "ไม่พบเมนู" });
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(400).json({ error: e.message });
+  }
 });
 
 module.exports = router;

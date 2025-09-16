@@ -1,7 +1,10 @@
+// src/routes/restaurantRoutes.js
 const express = require('express');
 const router = express.Router();
+
 const Restaurant = require('../models/Restaurant');
 const Menu = require('../models/Menu');
+const Review = require('../models/Review');
 
 // GET /api/restaurants/nearby?lat=&lng=&radius=&limit=
 router.get('/nearby', async (req, res) => {
@@ -10,15 +13,14 @@ router.get('/nearby', async (req, res) => {
     const lng = parseFloat(req.query.lng);
     const radius = parseInt(req.query.radius || '2000', 10);
     const limit = Math.min(parseInt(req.query.limit || '50', 10), 200);
-
     if (isNaN(lat) || isNaN(lng)) {
       return res.status(400).json({ error: 'ต้องระบุ lat,lng' });
     }
-
     const data = await Restaurant.aggregate([
       {
         $geoNear: {
           near: { type: 'Point', coordinates: [lng, lat] },
+          key: 'location',
           distanceField: 'distance',
           maxDistance: radius,
           spherical: true
@@ -26,15 +28,8 @@ router.get('/nearby', async (req, res) => {
       },
       { $limit: limit }
     ]);
-
     res.json(data);
   } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
-// alias: /near -> /nearby (เพื่อให้โค้ด front เดิมใช้ต่อได้)
-router.get('/near', async (req, res) => {
-  req.url = req.url.replace('/near', '/nearby');
-  return router.handle(req, res);
 });
 
 // GET /api/restaurants/by-menu?menu=ชื่อเมนู
@@ -66,12 +61,8 @@ router.post('/', async (req, res) => {
     const { name, address, image, phone, lng, lat } = req.body;
     if (!name) return res.status(400).json({ error: 'ต้องระบุชื่อร้าน' });
     if (lng === undefined || lat === undefined) return res.status(400).json({ error: 'ต้องระบุพิกัด (lng,lat)' });
-
     const r = await Restaurant.create({
-      name,
-      address,
-      image,
-      phone,
+      name, address, image, phone,
       location: { type: 'Point', coordinates: [Number(lng), Number(lat)] }
     });
     res.status(201).json(r);
@@ -101,32 +92,61 @@ router.delete('/:id', async (req, res) => {
   } catch (e) { res.status(400).json({ error: e.message }); }
 });
 
-// POST /api/restaurants/:id/reviews  { rating, text }
+/* -------------------- Reviews (วางก่อน '/:id') -------------------- */
+
+// GET /api/restaurants/:id/reviews
+router.get('/:id/reviews', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const limit = Math.min(parseInt(req.query.limit || '20', 10), 50);
+    const skip  = parseInt(req.query.skip || '0', 10);
+    const items = await Review.find({ restaurant: id })
+      .sort({ createdAt: -1 })
+      .skip(skip).limit(limit)
+      .lean();
+    res.json(items);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// POST /api/restaurants/:id/reviews
 router.post('/:id/reviews', async (req, res) => {
   try {
     const r = await Restaurant.findById(req.params.id);
     if (!r) return res.status(404).json({ error: 'ไม่พบร้าน' });
 
-    let rating = Number(req.body.rating);
-    if (!rating || rating < 1 || rating > 5) return res.status(400).json({ error: 'rating 1..5' });
     const text = (req.body.text || '').trim();
+    if (!text) return res.status(400).json({ error: 'text_required' });
 
-    const Review = require('../models/Review');
-    const review = await Review.create({ restaurant: r._id, rating, text, by: req.body.by });
+    let rating = Number(req.body.rating);
+    if (!Number.isFinite(rating)) rating = undefined;
+    if (rating && (rating < 1 || rating > 5)) {
+      return res.status(400).json({ error: 'rating 1..5' });
+    }
 
-    // Update aggregates
-    const newCount = (r.reviewCount || 0) + 1;
-    const newAvg = ((r.avgRating || 0) * (r.reviewCount || 0) + rating) / newCount;
+    const review = await Review.create({
+      restaurant: r._id,
+      text,
+      rating,
+      by: (req.body.by || req.body.userName || 'anonymous').trim()
+    });
 
-    r.reviewCount = newCount;
-    r.avgRating = Math.round(newAvg * 10) / 10;
-    await r.save();
+    if (Number.isFinite(rating)) {
+      const count = r.reviewCount ?? 0;
+      const avg   = r.avgRating   ?? 0;
+      const newCount = count + 1;
+      const newAvg   = ((avg * count) + rating) / newCount;
+      r.reviewCount  = newCount;
+      r.avgRating    = Math.round(newAvg * 10) / 10;
+      await r.save();
+    }
 
-    res.status(201).json({ review, restaurant: r });
+    res.status(201).json(review);
   } catch (e) { res.status(400).json({ error: e.message }); }
 });
 
-// GET /api/restaurants/:id
+/* ------------------ /Reviews --------------------- */
+
+// GET /api/restaurants/:id   (วางท้ายสุด)
 router.get('/:id', async (req, res) => {
   try {
     const r = await Restaurant.findById(req.params.id);

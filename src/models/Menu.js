@@ -1,6 +1,9 @@
 const mongoose = require('mongoose');
 
 const MenuSchema = new mongoose.Schema({
+  // เจ้าของ (ช่วยคิวรีย้อนกลับและบังคับสิทธิ์)
+  ownerUid: { type: String, index: true },
+
   // ===== Basic fields =====
   name: { type: String, required: true },
   price: Number,
@@ -23,7 +26,7 @@ const MenuSchema = new mongoose.Schema({
     }]
   },
 
-  // อ้างอิงร้าน (สำหรับเมนูนี้มีขายที่ร้านไหน)
+  // อ้างอิงร้านที่ขายเมนูนี้ (จำเป็น)
   restaurant: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Restaurant',

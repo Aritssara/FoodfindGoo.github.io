@@ -3,210 +3,301 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Admin Dashboard</title>
-  <style>
-    :root { --primary:#ffaa0d; --muted:#666; }
-    body { font-family: Arial, sans-serif; margin: 20px; background:#fafafa; color:#111; }
-    h1,h2 { margin: 8px 0 6px; }
-    input, button, select, textarea {
-      margin: 5px 0; padding: 10px; font-size: 1rem; width: 100%; box-sizing: border-box;
-      border:1px solid #e5e7eb; border-radius:10px; background:#fff;
-    }
-    button { cursor: pointer; background:#111; color:#fff; }
-    button.primary { background: var(--primary); color:#111; border:none; }
-    .row { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px; }
-    .card  { background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:14px; margin:12px 0; box-shadow:0 8px 18px rgba(0,0,0,.06); }
-    .menu-card { border:1px solid #e5e7eb; border-radius:10px; padding:10px; margin-bottom:10px; background:#fff; }
-    .muted { color: var(--muted); font-size: .9rem; }
-    img { max-width: 150px; display: block; margin-top: 5px; border-radius:10px; }
-    label.inline { display:flex; align-items:center; gap:8px; }
-    .grid { display:grid; gap:10px; }
-  </style>
+  <meta name="theme-color" content="#0b1220" />
+  <title>Admin • FoodFindGo</title>
+
+  <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="./assets/css/admin.css">
 </head>
 <body>
+  <!-- ====== SIDEBAR ====== -->
+  <aside id="sidebar" aria-label="Sidebar">
+    <a href="#" class="brand" aria-label="Back to dashboard">
+      <i class='bx bxs-smile'></i>
+      <span class="text">Admin</span>
+    </a>
 
-  <h1>Admin Dashboard</h1>
+    <ul class="side-menu top" role="tablist">
+      <li class="active">
+        <a href="#admin" data-section="admin" role="tab"><i class='bx bxs-user-detail'></i><span class="text">จัดการข้อมูล Admin</span></a>
+      </li>
+      <li>
+        <a href="#moderation" data-section="moderation" role="tab"><i class='bx bxs-message-dots'></i><span class="text">คัดกรองความคิดเห็น</span></a>
+      </li>
+      <li>
+        <a href="#shops" data-section="shops" role="tab"><i class='bx bxs-store-alt'></i><span class="text">จัดการข้อมูลร้าน</span></a>
+      </li>
+      <li>
+        <a href="#tables" data-section="tables" role="tab"><i class='bx bxs-spreadsheet'></i><span class="text">ตารางข้อมูล</span></a>
+      </li>
+    </ul>
 
-  <!-- ฟอร์มเพิ่มร้านอาหาร -->
-  <div class="card">
-    <h2>เพิ่มร้านอาหาร</h2>
-    <div class="row">
-      <div><input id="restaurantName" placeholder="ชื่อร้าน" /></div>
-      <div><input id="restaurantImage" placeholder="URL รูปภาพร้าน" /></div>
-      <div><input id="restaurantLat" placeholder="ละติจูด (Latitude)" /></div>
-      <div><input id="restaurantLng" placeholder="ลองจิจูด (Longitude)" /></div>
-      <div><input id="restaurantAddress" placeholder="ที่อยู่ (ไม่บังคับ)" /></div>
-      <div><input id="restaurantPhone" placeholder="เบอร์โทร (ไม่บังคับ)" /></div>
-    </div>
-    <button class="primary" onclick="addRestaurant()">เพิ่มร้านอาหาร</button>
-    <div class="muted">หมายเหตุ: ระบบจะสร้างพิกัด GeoJSON จากค่า lng/lat ให้โดยอัตโนมัติ</div>
-  </div>
+    <ul class="side-menu">
+      <li>
+        <a href="#" id="btnLogout" class="logout">
+          <i class='bx bxs-log-out-circle'></i><span class="text">ออกจากระบบ</span>
+        </a>
+      </li>
+    </ul>
+  </aside>
 
-  <!-- ฟอร์มเพิ่มเมนู -->
-  <div class="card">
-    <h2>เพิ่มเมนูอาหาร</h2>
-    <div class="row">
-      <div>
-        <select id="restaurantSelect">
-          <option value="">-- เลือกร้านอาหาร --</option>
-        </select>
+  <!-- ====== CONTENT ====== -->
+  <section id="content">
+    <!-- NAVBAR -->
+    <nav aria-label="Top navigation">
+      <i class='bx bx-menu' aria-label="Toggle sidebar" role="button" tabindex="0"></i>
+
+      <form action="#" role="search" aria-label="Global search">
+        <div class="form-input">
+          <input id="globalSearch" type="search" placeholder="ค้นหาเมนู/ร้าน/ผู้ใช้/คอมเมนต์..." aria-label="ค้นหา">
+          <button type="submit" class="search-btn" aria-label="ค้นหา"><i class='bx bx-search'></i></button>
+        </div>
+      </form>
+
+      <input type="checkbox" id="switch-mode" hidden>
+      <label for="switch-mode" class="switch-mode" title="สลับโหมดมืด/สว่าง"></label>
+
+      <a href="#" class="notification" aria-label="แจ้งเตือน">
+        <i class='bx bxs-bell'></i>
+        <span class="num" id="notifyNum">0</span>
+      </a>
+    </nav>
+
+    <!-- MAIN -->
+    <main>
+      <!-- Tiles -->
+      <ul class="box-info" id="statsTiles">
+        <li>
+          <i class='bx bxs-building-house'></i>
+          <span class="text">
+            <h3 id="statRestaurants">-</h3>
+            <p>จำนวนร้านอาหาร</p>
+          </span>
+        </li>
+        <li>
+          <i class='bx bxs-bowl-hot'></i>
+          <span class="text">
+            <h3 id="statMenus">-</h3>
+            <p>จำนวนเมนูทั้งหมด</p>
+          </span>
+        </li>
+        <li>
+          <i class='bx bxs-message-dots'></i>
+          <span class="text">
+            <h3 id="statComments">-</h3>
+            <p>จำนวนความคิดเห็น</p>
+          </span>
+        </li>
+      </ul>
+
+      <!-- 1) Admin Management (Single Admin) -->
+      <section class="panel" id="section-admin" aria-labelledby="hdr-admin">
+        <h2 id="hdr-admin">บัญชีผู้ดูแล (1 คน)</h2>
+
+        <div class="form-grid">
+          <input id="adminName"  class="input" placeholder="ชื่อผู้ดูแล (display name)">
+          <div class="field-inline full">
+            <input id="adminEmail" class="input" type="email" placeholder="อีเมล" readonly>
+            <button id="btnOpenChangeEmail" class="button" type="button" style="margin-left:8px;">
+              <i class='bx bx-envelope'></i>&nbsp;เปลี่ยนอีเมล…
+            </button>
+          </div>
+        </div>
+
+        <div class="actions-row">
+          <button class="button primary" id="btnSaveAdminProfile">
+            <i class='bx bx-save'></i>&nbsp;บันทึกข้อมูล
+          </button>
+        </div>
+
+        <p class="muted" style="margin-top:8px">
+          • ชื่อ (display name) แก้ได้ทันที • การเปลี่ยนอีเมลต้องยืนยันผ่านหน้าต่าง “เปลี่ยนอีเมล”
+        </p>
+      </section>
+
+      <!-- 2) Comment Moderation -->
+      <section class="panel hidden" id="section-moderation" aria-labelledby="hdr-moderation">
+        <h2 id="hdr-moderation">คัดกรองความคิดเห็น</h2>
+
+        <div class="form-grid">
+          <select id="modStatus" class="select">
+            <option value="pending">pending (รอตรวจ)</option>
+            <option value="approved">approved (อนุมัติแล้ว)</option>
+            <option value="rejected">rejected (ปฏิเสธ)</option>
+          </select>
+          <button class="button ghost" id="btnReloadMods"><i class='bx bx-refresh'></i>&nbsp;รีโหลด</button>
+          <span class="chip" id="modInfoBadge">กำลังดึงข้อมูล...</span>
+        </div>
+
+        <div class="panel inset">
+          <h2>รายการคอมเมนต์</h2>
+          <div class="table-wrap">
+            <table id="tblMods" class="table-sticky">
+              <thead>
+                <tr>
+                  <th>วันที่</th>
+                  <th>ผู้ใช้</th>
+                  <th>เรตติ้ง</th>
+                  <th>ข้อความ</th>
+                  <th>อ้างถึง</th>
+                  <th>สถานะ</th>
+                  <th>จัดการ</th>
+                </tr>
+              </thead>
+              <tbody><!-- render by JS --></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- 3) Shop & Menu Management -->
+      <section class="panel hidden" id="section-shops" aria-labelledby="hdr-shops">
+        <h2 id="hdr-shops">จัดการข้อมูลร้าน</h2>
+        <div class="panel inset">
+          <h2>เพิ่มร้านอาหาร</h2>
+          <div class="form-grid">
+            <input id="restaurantName" class="input" placeholder="ชื่อร้าน" />
+            <input id="restaurantImage" class="input" placeholder="URL รูปภาพร้าน" />
+            <input id="restaurantLat" class="input" placeholder="ละติจูด (Latitude)" />
+            <input id="restaurantLng" class="input" placeholder="ลองจิจูด (Longitude)" />
+            <input id="restaurantAddress" class="input" placeholder="ที่อยู่ (ไม่บังคับ)" />
+            <input id="restaurantPhone" class="input" placeholder="เบอร์โทร (ไม่บังคับ)" />
+          </div>
+          <div class="actions-row">
+            <button class="button primary" id="btnAddRestaurant"><i class='bx bx-plus'></i>&nbsp;เพิ่มร้านอาหาร</button>
+            <button class="button ghost" id="btnClearRestaurant">ล้างฟอร์ม</button>
+          </div>
+          <div class="muted">ระบบจะสร้างพิกัด GeoJSON จากค่า lng/lat ให้โดยอัตโนมัติ</div>
+        </div>
+
+        <div class="panel inset">
+          <h2>เพิ่มเมนูอาหาร</h2>
+          <div class="form-grid">
+            <select id="restaurantSelect" class="select">
+              <option value="">-- เลือกร้านอาหาร --</option>
+            </select>
+            <input id="menuName" class="input" placeholder="ชื่อเมนู" />
+            <input id="menuPrice" class="input" type="number" placeholder="ราคา" />
+            <input id="menuType" class="input" placeholder="ประเภท" />
+            <input id="menuImage" class="input" placeholder="URL รูปภาพเมนู" />
+            <textarea id="menuDescription" class="textarea full" placeholder="รายละเอียดเมนู"></textarea>
+
+            <div class="field-inline full">
+              <label class="field-inline"><input id="menuIsFeatured" type="checkbox">&nbsp;เมนูเด่น (isFeatured)</label>
+              <input id="menuFeaturedBoost" class="input" type="number" min="0" placeholder="featuredBoost (เช่น 0–100)" style="max-width:220px;">
+            </div>
+          </div>
+          <div class="actions-row">
+            <button class="button primary" id="btnAddMenu"><i class='bx bx-plus'></i>&nbsp;เพิ่มเมนู</button>
+            <button class="button ghost" id="btnClearMenu">ล้างฟอร์ม</button>
+          </div>
+          <div class="muted">ติ๊ก <code>isFeatured</code> และตั้ง <code>featuredBoost</code> เพื่อดันขึ้น “เมนูยอดฮิต”</div>
+        </div>
+      </section>
+
+      <!-- 4) Data Tables -->
+      <section class="panel hidden" id="section-tables" aria-labelledby="hdr-tables">
+        <h2 id="hdr-tables">ตารางข้อมูล</h2>
+
+        <div class="panel inset">
+          <h2>ร้านอาหาร</h2>
+          <div class="table-wrap">
+            <table id="tblRestaurants" class="zebra table-sticky">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>รูป</th>
+                  <th>ชื่อร้าน</th>
+                  <th>ที่อยู่</th>
+                  <th>โทร</th>
+                  <th>พิกัด</th>
+                  <th>จัดการ</th>
+                </tr>
+              </thead>
+              <tbody><!-- render by JS --></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="panel inset">
+          <h2>เมนูอาหาร</h2>
+          <div class="table-wrap">
+            <table id="tblMenus" class="zebra table-sticky">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>รูป</th>
+                  <th>ชื่อเมนู</th>
+                  <th>ประเภท</th>
+                  <th>ราคา</th>
+                  <th>ร้าน</th>
+                  <th>Featured</th>
+                  <th>จัดการ</th>
+                </tr>
+              </thead>
+              <tbody><!-- render by JS --></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </main>
+  </section>
+
+  <!-- Firebase + Guard ต้องมาก่อนโค้ดอื่น -->
+  <script type="module" src="/services/firebase.js"></script>
+  <script type="module" src="/services/admin_guard.js"></script>
+
+  <!-- ปุ่มออกจากระบบ -->
+  <script type="module">
+    import { getAuth, signOut } from "https://www.gstatic.com/firebasejs/10.11.1/firebase-auth.js";
+    const LOGIN_URL = "/login/Login.html";
+    document.getElementById("btnLogout")?.addEventListener("click", async (e) => {
+      e.preventDefault();
+      try { await signOut(getAuth()); } catch {}
+      try { localStorage.clear(); sessionStorage.clear(); } catch {}
+      window.location.href = LOGIN_URL;
+    });
+  </script>
+
+  <!-- ===== Modal: เปลี่ยนอีเมลแอดมิน ===== -->
+  <div id="changeEmailModalBackdrop" style="display:none;align-items:center;justify-content:center;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:3100;">
+    <div class="panel" style="width:min(560px,95vw);max-height:90vh;overflow:auto;">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+        <h3 style="margin:0;">เปลี่ยนอีเมลผู้ดูแล</h3>
+        <button id="btnCEClose" class="button" type="button">ปิด</button>
       </div>
-      <div><input id="menuName" placeholder="ชื่อเมนู" /></div>
-      <div><input id="menuPrice" type="number" placeholder="ราคา" /></div>
-      <div><input id="menuType" placeholder="ประเภท" /></div>
-      <div><input id="menuImage" placeholder="URL รูปภาพเมนู" /></div>
+
+      <div class="panel inset" style="margin-top:10px;">
+        <h2 style="margin-bottom:6px;">อีเมลใหม่</h2>
+        <input id="ceNewEmail" class="input" type="email" placeholder="เช่น you@domain.com">
+      </div>
+
+      <div id="cePwdBlock" class="panel inset" style="margin-top:10px;">
+        <h2 style="margin-bottom:6px;">ยืนยันด้วยรหัสผ่าน</h2>
+        <input id="cePassword" class="input" type="password" placeholder="รหัสผ่านปัจจุบัน">
+        <div class="muted" style="margin-top:6px;">* จำเป็นสำหรับบัญชีที่เข้าสู่ระบบด้วยอีเมล/รหัสผ่าน</div>
+      </div>
+
+      <div id="ceInfoOauth" class="panel inset" style="margin-top:10px; display:none;">
+        <h2 style="margin-bottom:6px;">ล็อกอินด้วย Google/Provider อื่น?</h2>
+        <div class="muted">
+          บัญชีนี้ไม่ได้ใช้รหัสผ่าน จึงไม่สามารถเปลี่ยนอีเมลจากหน้านี้ได้
+          กรุณา “ออกจากระบบ” แล้ว “เข้าสู่ระบบใหม่” ด้วยอีเมลที่ต้องการ
+        </div>
+      </div>
+
+      <div class="row-actions" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="button" id="btnCECancel" type="button">ยกเลิก</button>
+        <button class="button primary" id="btnCESubmit" type="button" style="margin-left:auto;">ยืนยันเปลี่ยนอีเมล</button>
+      </div>
     </div>
-    <textarea id="menuDescription" placeholder="รายละเอียดเมนู"></textarea>
-
-
-    <button class="primary" onclick="addMenu()">เพิ่มเมนู</button>
-    <div class="muted">คำแนะนำ: เมนูที่ติ๊ก <code>isFeatured</code> และตั้ง <code>featuredBoost</code> จะมีคะแนนสูงขึ้นใน “ยอดฮิต”</div>
-  </div>
-  <!-- แสดงรายการเมนูทั้งหมด -->
-  <div class="card">
-    <h2>รายการเมนูทั้งหมด</h2>
-    <div id="menuList"></div>
   </div>
 
-<script>
-  // === Utils ===
-  const jfetch = async (url, opts={}) => {
-    const res = await fetch(url, opts);
-    const data = await res.json().catch(()=> ({}));
-    if (!res.ok) { throw new Error(data?.error || data?.message || ('HTTP '+res.status)); }
-    return data;
-  };
-  const clear = (ids) => ids.forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
-
-  // โหลดตัวเลือกร้านอาหาร
-  async function loadRestaurantOptions() {
-    try {
-      const data = await jfetch('/api/restaurants');
-      const select = document.getElementById('restaurantSelect');
-      select.innerHTML = '<option value="">-- เลือกร้านอาหาร --</option>';
-      data.forEach(r => {
-        const opt = document.createElement('option');
-        opt.value = r._id;
-        opt.textContent = r.name;
-        select.appendChild(opt);
-      });
-    } catch (error) {
-      alert('โหลดร้านอาหารล้มเหลว: ' + error.message);
-    }
-  }
-
-  // เพิ่มร้านอาหาร (ใช้ lng/lat ตรงตาม API)
-  async function addRestaurant() {
-    const name = document.getElementById('restaurantName').value.trim();
-    const image = document.getElementById('restaurantImage').value.trim();
-    const lat = parseFloat(document.getElementById('restaurantLat').value);
-    const lng = parseFloat(document.getElementById('restaurantLng').value);
-    const address = document.getElementById('restaurantAddress').value.trim();
-    const phone = document.getElementById('restaurantPhone').value.trim();
-
-    if (!name || isNaN(lat) || isNaN(lng)) {
-      alert('กรุณากรอกชื่อร้าน + พิกัดให้ถูกต้อง');
-      return;
-    }
-    try {
-      const payload = { name, image, address, phone, lat, lng };
-      await jfetch('/api/restaurants', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      alert('เพิ่มร้านอาหารเรียบร้อยแล้ว');
-      clear(['restaurantName','restaurantImage','restaurantLat','restaurantLng','restaurantAddress','restaurantPhone']);
-      await loadRestaurantOptions();
-    } catch (error) {
-      alert('เกิดข้อผิดพลาด: ' + error.message);
-    }
-  }
-
-  // เพิ่มเมนูอาหาร (ตัด status ออก เหลือ isFeatured/featuredBoost)
-  async function addMenu() {
-    const name = document.getElementById('menuName').value.trim();
-    const price = parseFloat(document.getElementById('menuPrice').value);
-    const type = document.getElementById('menuType').value.trim();
-    const image = document.getElementById('menuImage').value.trim();
-    const description = document.getElementById('menuDescription').value.trim();
-    const restaurantId = document.getElementById('restaurantSelect').value;
-
-    const isFeatured = document.getElementById('menuIsFeatured').checked;
-    const featuredBoost = parseInt(document.getElementById('menuFeaturedBoost').value || '0', 10);
-
-    if (!name || isNaN(price) || !type || !restaurantId) {
-      alert('กรุณากรอกชื่อเมนู/ราคา/ประเภท/เลือกร้าน');
-      return;
-    }
-
-    try {
-      const payload = { name, price, type, image, description, restaurantId, isFeatured, featuredBoost };
-      await jfetch('/api/menus', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      alert('เพิ่มเมนูอาหารเรียบร้อยแล้ว');
-      clear(['menuName','menuPrice','menuType','menuImage','menuDescription','menuFeaturedBoost']);
-      document.getElementById('menuIsFeatured').checked = false;
-      await loadMenus();
-    } catch (error) {
-      alert('เกิดข้อผิดพลาด: ' + error.message);
-    }
-  }
-
-  // อัปเดตบูสต์ของเมนู (PATCH) — ไม่ยุ่งกับ status
-  async function updateMenuFlags() {
-    const id = document.getElementById('editMenuId').value.trim();
-    const isFeatured = document.getElementById('editFeatured').checked;
-    const featuredBoost = parseInt(document.getElementById('editBoost').value || '0', 10);
-
-    if (!id) { alert('กรอก menuId'); return; }
-    try {
-      const body = { isFeatured, featuredBoost };
-      await jfetch('/api/menus/' + encodeURIComponent(id), {
-        method: 'PATCH',
-        headers: { 'Content-Type':'application/json' },
-        body: JSON.stringify(body)
-      });
-      alert('อัปเดตสำเร็จ');
-      await loadMenus();
-    } catch (error) {
-      alert('อัปเดตไม่สำเร็จ: ' + error.message);
-    }
-  }
-
-  // โหลดเมนูทั้งหมด (ไม่แสดง status แล้ว)
-  async function loadMenus() {
-    try {
-      const menus = await jfetch('/api/menus');
-      const container = document.getElementById('menuList');
-      container.innerHTML = '';
-
-      menus.forEach(menu => {
-        const div = document.createElement('div');
-        div.className = 'menu-card';
-        div.innerHTML = `
-          <p><strong>${menu.name}</strong> (${menu.type || '-'}) - ${menu.price ?? '-'} บาท</p>
-          <p>รายละเอียด: ${menu.description || 'ไม่มีรายละเอียด'}</p>
-          <p class="muted">isFeatured: <b>${menu.isFeatured ? 'true' : 'false'}</b> • featuredBoost: <b>${menu.featuredBoost || 0}</b></p>
-          <img src="${menu.image || ''}" alt="รูปเมนู: ${menu.name}" />
-          <p>ร้าน: ${menu.restaurant?.name || 'ไม่ระบุร้าน'}</p>
-          ${menu.restaurant?.image ? `<img src="${menu.restaurant.image}" alt="รูปของร้าน: ${menu.restaurant.name}" />` : ''}
-        `;
-        container.appendChild(div);
-      });
-    } catch (error) {
-      alert('โหลดเมนูล้มเหลว: ' + error.message);
-    }
-  }
-
-  window.addEventListener('DOMContentLoaded', () => {
-    loadRestaurantOptions();
-    loadMenus();
-  });
-</script>
-
+  <!-- helper + profile -->
+  <script type="module" src="services/auth_expose.js"></script>
+  <script type="module" src="services/admin_profile.js"></script>
+  
+  <!-- ฟังก์ชันหลักของแดชบอร์ด (CRUD ร้าน/เมนู + Moderation) -->
+  <script src="admin.js"></script>
 </body>
 </html>
