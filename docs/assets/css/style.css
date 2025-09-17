@@ -1,0 +1,538 @@
+/* User's supplied CSS (latest) */ 
+/* =================== Theme & Reset =================== */
+:root{
+  --primary: #FFAA0D;
+  --primary-700: #f68a00;
+  --ink: #111827;
+  --muted: #6b7280;
+  --surface: #fff;
+  --radius: 14px;
+  --radius-lg: 20px;
+  --shadow-sm: 0 2px 8px rgba(0,0,0,.10);
+  --shadow: 0 8px 22px rgba(0,0,0,.08);
+  --shadow-lg: 0 16px 40px rgba(0,0,0,.12);
+}
+
+*{ margin:0; padding:0; box-sizing:border-box; }
+html, body{ height:100%; }
+body{
+  font-family: "Roboto", system-ui, -apple-system, Segoe UI, Arial, sans-serif;
+  color: var(--ink);
+  background: #fff;
+  line-height: 1.55;
+}
+
+/* =================== Layout Helpers =================== */
+.container{ max-width:1140px; margin:0 auto; display:block; padding-inline:16px; }
+
+/* =================== Navbar =================== */
+nav{ padding:.2rem; background-color:#fff; position:sticky; top:0; z-index:50; border-bottom:1px solid #eee; }
+.nav-con{
+  gap:1rem; display:flex; justify-content:space-between; align-items:center; height:80px;
+}
+.logo a{
+  font-size:2rem; font-weight:bold; color:var(--primary); text-decoration:none;
+  line-height:1; display:flex; align-items:center; height:100%;
+}
+.menu{ display:flex; list-style:none; align-items:center; gap:10px; }
+.menu li{ margin:0 .4rem; }
+.menu li a{
+  color:#111; text-decoration:none; font-size:18px; display:inline-block; padding:.5rem 1rem; border-radius:999px;
+  transition: background .2s ease, transform .15s ease;
+}
+.menu li a:hover{ background: color-mix(in oklab, var(--primary) 22%, white); }
+
+/* Hamburger */
+.menu-toggle{ display:none; font-size:1.8rem; cursor:pointer; color:var(--primary); background:none; border:0; }
+
+/* Drawer (mobile) */
+@media (max-width:600px){
+  .menu-toggle{ display:block; }
+  .menu{
+    position:fixed; top:80px; left:0; width:250px; height:calc(100dvh - 80px);
+    background:#fff; padding:1rem; flex-direction:column; align-items:stretch;
+    transform:translateX(-100%); transition:transform .3s ease; z-index:999; box-shadow: 2px 0 12px rgba(0,0,0,.15);
+  }
+  .menu.active{ transform:translateX(0); }
+  .search-bar{ display:none; max-width:250px; }
+}
+
+/* =================== Hero =================== */
+.maincontent{
+  position: relative;
+  min-height: 320px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color:#fff;
+  overflow: hidden;
+  width: 100%;
+}
+.maincontent::before{
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: url('/background/food.jpg') center/cover no-repeat;
+  filter: blur(5px);
+  transform: scale(1.08);
+  z-index: 0;
+}
+.maincontent::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  background: linear-gradient(180deg, rgba(0,0,0,.28), rgba(0,0,0,.38));
+  z-index: 0;
+}
+.maincontent-con{ position: relative; z-index: 1; }
+.maincontent-info{ width:100%; padding:2rem; }
+.maincontent-info h3{ font-size: clamp(1.6rem, 1rem + 2.4vw, 2.5rem); color: var(--primary);}
+.maincontent-info p{ margin:1rem 0; font-size: clamp(1.1rem, 1rem + 2vw, 2rem); }
+@media (max-width:600px){ .maincontent-con{ grid-template-columns:1fr; gap:14px; } }
+
+/* =================== Search Bar =================== */
+.search-bar {
+  display: flex; margin: 2rem auto; width: 100%; max-width: 400px; align-items: center;
+  background: #e8e8e8; border-radius: 2rem; padding: .3rem 1.2rem; box-shadow: 2px 4px 10px rgba(0,0,0,.2);
+  transition: background-color .3s ease;
+}
+.search-bar:hover { background: #c8c8c8; }
+.search-bar i { color: #000; font-size: 1.3rem; margin-right: .5rem; }
+.search-input { border: none; outline: none; width: 100%; background: transparent; color: #000; font-size: 1.1rem; }
+.search-input::placeholder { color: #555; opacity: 1; }
+.fa-search::before { font-family: "Font Awesome 6 Free"; font-weight: 900; }
+
+/* =================== Menu List (หน้าเมนู) =================== */
+.content{ background:#fff; padding:2rem; }
+.content-con{ max-width:100%; margin:20px; display:flex; justify-content:space-between; flex-wrap:wrap; gap:20px; }
+.content-title{ margin:2rem 0; display:block; }
+.content-item img{ width:50%; border-radius:60px; box-shadow:0 10px 10px rgba(0,0,0,.18); }
+.content-item h4{ margin-top:1rem; }
+.content-item p{ margin:.5rem 0; }
+.content-item a,
+.content-item .content-btn{
+  display:inline-block; color:#111; background:var(--primary); text-decoration:none; border-radius:20px; padding:6px 10px;
+  transition: filter .2s ease, transform .15s ease;
+}
+.content-item a:hover,
+.content-item .content-btn:hover{ filter:brightness(0.95); }
+
+/* =================== Card Grid (เมนู) =================== */
+.card .meta{
+  margin: 8px 0 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: center;
+}
+.badge{
+  display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px;
+  border-radius: 999px; font-size: .92rem; line-height: 1;
+  background: #f3f4f6; color: #374151; border: 1px solid #e5e7eb;
+}
+.badge.price{
+  background: color-mix(in oklab, var(--primary) 18%, white);
+  color: #111; border-color: #f6d58f; font-weight: 600;
+}
+.badge i{ font-style: normal; opacity: .75; }
+.menu-list{ list-style:none; padding:0; margin:0; display:contents; }
+
+.card{
+  background:#fff; border-radius:15px; box-shadow: var(--shadow-sm); text-align:center; padding:1rem;
+  transition: transform .2s ease, box-shadow .2s ease;
+}
+.card:hover{ transform:translateY(-4px); box-shadow:var(--shadow); }
+.card img{ width:100%; height:200px; object-fit:cover; border-radius:10px; }
+.card h3{ margin:10px 0 6px; font-size:1.15rem; color:#333; }
+.card p{ font-size:.95rem; color:#666; margin-bottom:1rem; }
+.card button{
+  background: var(--primary); color:#111; border:none; padding:.6rem 1.2rem; border-radius:10px; cursor:pointer;
+  transition: filter .2s ease, transform .15s ease;
+}
+.card button:hover{ filter:brightness(0.95); }
+
+/* =================== Auth (ล็อกอิน) =================== */
+.container1{
+  background:#fff; width: clamp(320px, 86vw, 460px); padding:1.5rem; margin:50px auto; border-radius:12px; box-shadow:var(--shadow);
+}
+form{ margin:0 2rem; }
+.form-title{ font-size:1.5rem; font-weight:800; text-align:center; padding:1.3rem; margin-bottom:.4rem; }
+.input-group{ position:relative; padding:10px 0; }
+.input-group i{ position:absolute; left:4px; top:50%; transform:translateY(-50%); color:#111; }
+input{
+  width:100%; background:transparent; border:none; border-bottom:1px solid #757575; padding:10px 10px 10px 28px; font-size:15px; color:#111;
+}
+input:focus{ outline:none; border-bottom:2px solid var(--primary); }
+input::placeholder{ color:transparent; }
+label{
+  color:#757575; position:absolute; left:28px; top:-6px; font-size:12px; background:#fff; padding:0 4px;
+}
+.recover{ text-align:right; font-size:.95rem; margin:.5rem 0; }
+.recover a{ text-decoration:none; color:#7b7b7b; }
+.recover a:hover{ text-decoration:underline; color:var(--primary); }
+button{
+  font-size:1.05rem; padding:10px 14px; border-radius:10px; border:none; width:100%;
+  background:var(--primary); color:#111; cursor:pointer; transition: filter .2s ease, transform .15s ease;
+}
+button:hover{ filter:brightness(0.95); }
+.or{ font-size:1.05rem; margin-top:.5rem; text-align:center; }
+.icons{ text-align:center; }
+.icons i{
+  color:var(--primary); padding:.8rem 1.2rem; border-radius:10px; font-size:1.4rem; cursor:pointer; border:2px solid #dfe9f5; margin:0 10px;
+  transition: background .2s ease, transform .15s ease;
+}
+.icons i:hover{ background:#111; color:#fff; }
+.links{ display:flex; justify-content:space-around; padding:0 2rem; margin-top:.9rem; font-weight:700; }
+#signUpButton, #signInButton{ color:var(--primary); border:none; background:transparent; font-size:1rem; font-weight:700; }
+#signUpButton:hover, #signInButton:hover{ text-decoration:underline; color:#777; }
+.bg-image{
+  background-image: url('/background/รวมอาหาร.jpg');
+  background-size: cover;
+  background-position: center;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: -1;
+}
+.messageDiv{
+  background:#e5e7eb; color:#111; padding:10px 12px; margin:10px; border-radius:8px; font-size:.95rem;
+  opacity:0; animation:fadeOut 7s forwards;
+}
+@keyframes fadeOut{ 0%{opacity:1} 80%{opacity:1} 100%{opacity:0} }
+
+/* =================== Profile Box =================== */
+.container-con{
+  padding:25px; background: var(--primary); width:100%; box-shadow:var(--shadow); display:flex; flex-direction:column; justify-content:center;
+}
+.profile-title{ font-size:30px; margin-bottom:10px; }
+.profile-item{ margin:5px 0; font-size:24px; }
+.btn1{
+  background:var(--primary); color:#000; max-width:200px; margin:2rem; border-radius:20px; padding:10px 20px; text-align:center;
+  transition: filter .2s ease, transform .15s ease;
+}
+.btn1:hover{ filter:brightness(0.95); }
+
+/* =================== Map & Nearby List =================== */
+#map{
+  width:100%; height:400px; min-height:320px; border-radius: var(--radius); overflow:hidden; box-shadow: var(--shadow);
+  position:relative; z-index:1; background:none !important; filter:none !important; box-shadow: var(--shadow) !important;
+}
+#map *{
+  background:none !important; filter:none !important; box-shadow:none !important; mask-image:none !important;
+  backdrop-filter:none !important; mix-blend-mode:normal !important; opacity:1 !important;
+}
+#list{ padding:25px; max-height:300px; overflow-y:auto; }
+.place{ background:#dbdbdb; border-radius:8px; padding:10px; margin-bottom:10px; }
+.distance{ color:#555; font-size:.9em; }
+
+/* =================== ร้านที่มีเมนู (หน้า detail) =================== */
+.detail-container{ max-width:1140px; margin:2rem auto; padding:1rem; }
+.detail-container h1{ text-align:center; font-size:28px; margin-bottom:2rem; color:#333; }
+
+.detail-content{ display:flex; flex-wrap:wrap; gap:2rem; justify-content:space-between; align-items:flex-start; }
+.restaurant-list{
+  flex:1 1 300px; background:#fff; border-radius: var(--radius); padding:1rem; box-shadow: var(--shadow-sm);
+  max-height:400px; overflow-y:auto; display:grid; gap:12px;
+}
+.restaurant-item{
+  background:#fff; border-radius: var(--radius); padding:12px; box-shadow: 0 6px 18px rgba(0,0,0,.06);
+  transition: transform .18s ease, box-shadow .18s ease; cursor:pointer;
+}
+.restaurant-item:hover{ transform:translateY(-2px); box-shadow: 0 10px 24px rgba(0,0,0,.08); }
+.restaurant-item .title{ font-weight:700; margin-bottom:4px; }
+.restaurant-item .sub{ color: var(--muted); margin-bottom:8px; }
+.go-btn{
+  display:inline-block; padding:8px 12px; border-radius:10px; border:1px solid #e5e7eb; background:#111827; color:#fff; font-size:.92rem;
+  transition: filter .2s ease, transform .15s ease;
+}
+.go-btn:hover{ filter:brightness(1.05); }
+.rest-row{ display:grid; grid-template-columns:84px 1fr; gap:12px; align-items:center; }
+.rest-cover{ width:84px; height:84px; border-radius:12px; overflow:hidden; background:#f3f4f6; }
+.rest-cover img{ width:100%; height:100%; object-fit:cover; }
+
+/* =================== เมนูรายละเอียด (การ์ดบนสุด) =================== */
+.menu-detail{
+  display:flex; align-items:center; gap:16px; padding:16px; border-radius: var(--radius); background:#fff; box-shadow: var(--shadow);
+  margin:16px 0 20px;
+}
+.menu-detail img{
+  width:120px; height:120px; border-radius:12px; object-fit:cover; flex:0 0 120px; background:#f3f4f6;
+}
+.menu-info h2{ margin:0 0 6px; font-size:1.25rem; }
+.menu-info p{ margin:0; color:#374151; line-height:1.55; }
+
+/* =================== Responsive =================== */
+@media (max-width:768px){
+  .detail-content{ flex-direction:column; }
+  #map{ width:100%; height:360px; }
+}
+@media (max-width:640px){
+  .menu-detail{ flex-direction:column; align-items:flex-start; }
+  .menu-detail img{ width:100%; height:180px; border-radius:12px; }
+  .rest-row{ grid-template-columns:72px 1fr; }
+  .rest-cover{ width:72px; height:72px; }
+}
+
+/* =========== Additions/cleanups (organized) =========== */
+.muted { color: var(--muted); }
+.state { padding: 4px 2px; }
+.section { margin-top: 24px; }
+.section-head { display: flex; align-items: center; justify-content: space-between; margin: 8px 0 12px; }
+.section-title { font-size: 1.35rem; font-weight: 700; }
+.btn {
+  display: inline-flex; align-items: center; gap: .5rem;
+  padding: 10px 14px; border: none; border-radius: 10px; cursor: pointer;
+  transition: filter .2s ease, transform .15s ease;
+}
+.btn:hover { filter: brightness(0.97); }
+.btn:active { transform: translateY(1px); }
+.btn-primary { background: var(--primary); color: #111; }
+.btn-dark { background: #111827; color: #fff; }
+.section-actions { margin-top: 12px; }
+.hint { font-size: .9rem; margin-top: 6px; }
+.popular-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 14px;
+}
+.card-popular { background: #fff; border-radius: 12px; box-shadow: 0 8px 18px rgba(0,0,0,.06); overflow: hidden; }
+.card-cover img { width: 100%; height: 140px; object-fit: cover; display: block; }
+.card-body { padding: 10px 12px; }
+.card-title { font-weight: 600; margin: 6px 0; }
+.fallback-nav { padding: 1rem; border-bottom: 1px solid #eee; font-weight: 700; }
+
+/* ===== Patch: make cards align nicely in a responsive grid ===== */
+.menu-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 16px;
+  align-items: stretch;
+}
+.popular-grid { align-items: stretch; }
+.card, .card-popular { display: flex; flex-direction: column; height: 100%; }
+.card-body { display: flex; flex-direction: column; gap: 8px; flex: 1; }
+.card-body .btn, .card button { margin-top: auto; }
+.card img, .card-cover img { height: 180px; object-fit: cover; width: 100%; display: block; border-radius: 10px; }
+.card-title {
+  display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden;
+}
+.card .card-desc {
+  margin: 4px 0 10px;
+  color: #555;
+  font-size: .95rem;
+  line-height: 1.4;
+
+  /* Primary (Chrome/Edge/Safari) */
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+  overflow: hidden;
+
+  /* Visual stability while loading */
+  max-height: calc(1.4em * 4);
+}
+
+/* If your sheet has a generic .card p rule earlier,
+   this ensures our clamp wins */
+.card p.card-desc {
+  display: -webkit-box !important;
+  overflow: hidden !important;
+}
+
+/* Firefox / non-webkit fallback */
+@supports not (-webkit-line-clamp: 1) {
+  .card .card-desc {
+    display: block;
+    overflow: hidden;
+    max-height: calc(1.4em * 4);
+  }
+}
+/* ===== Footer Vertical Left ===== */
+.footer {
+  background:#111827; color:#eee;
+  text-align:left;   
+  padding:30px 20px; font-size:.95rem; margin-top:40px;
+}
+.footer h4 { color:var(--primary); margin-bottom:8px; }
+.footer p, .footer a { margin:4px 0; color:#ccc; text-decoration:none; display:block; }
+.footer a:hover { color:var(--primary); }
+.footer .socials a { margin-right:10px; color:#fff; }
+.footer-bottom {
+  margin-top:14px; font-size:.85rem; color:#aaa; border-top:1px solid #333; padding-top:10px;
+}
+
+/* ===== Profile page polish ===== */
+.profile-wrap { padding:16px; }
+.profile-card { border-radius: var(--radius-lg); box-shadow: var(--shadow); }
+.profile-head {
+  display:flex; align-items:center; gap:16px; justify-content:space-between; flex-wrap:wrap;
+}
+.avatar {
+  width:74px; height:74px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  background: color-mix(in oklab, var(--primary) 18%, white);
+  color:#111; font-weight:800; font-size:1.3rem; box-shadow: var(--shadow-sm);
+}
+.profile-meta { flex: 1 1 auto; min-width: 240px; }
+.profile-title { margin:0 0 6px; font-size: clamp(1.2rem, 1rem + 1.2vw, 1.6rem); }
+.profile-items { display:flex; gap:16px; flex-wrap:wrap; font-size: .98rem; color:#374151; }
+.profile-item b { font-weight:700; }
+
+.profile-actions { display:flex; gap:8px; flex:0 0 auto; }
+
+.profile-stats {
+  display:flex; gap:16px; margin-top:14px; flex-wrap:wrap;
+}
+.stat {
+  background:#fff; border:1px solid #eceff3; border-radius:12px; padding:12px 16px; min-width:160px;
+  display:flex; flex-direction:column; align-items:flex-start; gap:4px;
+}
+.stat-num { font-size:1.4rem; font-weight:800; }
+.stat-label { color:#6b7280; font-size:.92rem; }
+
+/* Favorites grid */
+.favorites-grid{
+  display:grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap:16px;
+}
+.fav-card { overflow:hidden; }
+.fav-card .card-body { display:flex; flex-direction:column; gap:8px; }
+.card-actions { margin-top:auto; display:flex; gap:8px; }
+
+/* Loading skeletons */
+.skeleton-card{
+  height:232px; border-radius:12px; background:
+    linear-gradient(90deg, #f1f5f9 25%, #e5e7eb 37%, #f1f5f9 63%);
+  background-size:400% 100%;
+  animation: shimmer 1.2s infinite;
+  box-shadow: var(--shadow-sm);
+}
+@keyframes shimmer {
+  0%{ background-position: 100% 0 }
+  100%{ background-position: -100% 0 }
+}
+
+/* Empty state */
+.empty{
+  background:#fff; border:1px solid #eceff3; border-radius:12px; padding:20px; text-align:center;
+  grid-column: 1 / -1;
+}
+.empty i{ font-size:40px; color:var(--primary-700); }
+.empty p{ margin:8px 0 12px; color:#6b7280; }
+/* ===== Profile — Layout แบบในภาพ ===== */
+:root{
+  --brand-orange: #f9a20a;
+  --sheet-radius: 18px;
+}
+.profile-hero{
+  height: 160px;
+  background: var(--brand-orange);
+}
+.profile-sheet{
+  max-width: 980px;
+  margin: -90px auto 28px;
+  background: #fff;
+  border-radius: var(--sheet-radius);
+  box-shadow: 0 12px 28px rgba(0,0,0,.08);
+  padding: 24px 28px 28px;
+}
+.profile-header{
+  display:flex; align-items:center; gap:18px; margin-bottom: 22px;
+}
+.avatar-xl{
+  width:84px; height:84px; border-radius: 50%;
+  display:grid; place-items:center;
+  border:3px solid #111; color:#111; background:#fff;
+}
+.avatar-xl i{ font-size: 44px; }
+.profile-name h1{
+  margin: 0 0 6px; font-size: clamp(1.1rem, 2.4vw, 1.6rem);
+  font-weight: 800; color:#111;
+}
+.edit-link{
+  color:#f39a06; text-decoration:none; font-size:.92rem;
+}
+.edit-link:hover{ text-decoration: underline; }
+
+/* Section */
+.favorites-block{ margin-top: 12px; }
+.section-title{ margin: 0 0 14px; font-size: clamp(1rem, 2.2vw, 1.35rem); }
+
+/* Favorites grid */
+.favorites-grid{
+  display:grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 22px;
+}
+
+/* Skeleton style ให้เหมือนภาพ */
+.skel{
+  display:flex; flex-direction:column; gap:12px;
+}
+.skel-rect{
+  height: 150px; border-radius: 14px;
+  background: #e3e3e3;
+}
+.skel-line{
+  width: 130px; height: 14px; border-radius: 999px;
+  background: #dedede;
+}
+
+/* Card จริงหลังโหลด */
+.fav-card{
+  background:#fff; border:1px solid #eee; border-radius: 14px;
+  box-shadow: 0 6px 16px rgba(0,0,0,.06); overflow:hidden;
+}
+.fav-card img{ width:100%; height:150px; object-fit:cover; display:block; }
+.fav-card .body{ padding:10px 12px 12px; }
+.fav-card .title{
+  font-weight:700; margin: 2px 0 8px; font-size: .98rem;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.fav-card .row{ display:flex; gap:8px; }
+.fav-card .btn{
+  flex:1; padding:8px 10px; border-radius:10px; cursor:pointer;
+  border:1px solid #e5e7eb; background:#fff;
+}
+.fav-card .btn-primary{ background:#ffa200; border-color:#ea8600; }
+
+/* Empty state */
+.empty{
+  grid-column: 1 / -1;
+  background:#fff; border:1px solid #eee; border-radius:14px;
+  padding:24px; text-align:center; color:#666;
+}
+.empty i{ font-size:40px; color:#f39a06; margin-bottom:6px; display:block; }
+/* ---- Fix: Role buttons (override global label rule) ---- */
+.role-row .role-btn{
+  position: static !important;   /* ยกเลิก position:absolute ของ label ทั่วไป */
+  left: auto !important;
+  top: auto !important;
+}
+.role-row{ display:flex; gap:12px; align-items:center; margin:8px 0 12px; }
+.role-row .role-btn{
+  display:inline-flex; align-items:center; gap:8px;
+  padding:8px 14px; border:1px solid #e5e7eb; border-radius:999px;
+  background:#fff; cursor:pointer; user-select:none;
+}
+.role-row .role-btn input{ position:absolute; opacity:0; width:0; height:0; }
+.role-row .role-btn.active{ background:#f59e0b; color:#fff; border-color:#f59e0b; }
+/* === Global Autocomplete (ใช้ร่วมกับ navbar) === */
+.autocomplete{
+  position:absolute; left:0; right:0; top:calc(100% + 6px);
+  background:#fff; border:1px solid #e5e7eb; border-radius:12px; overflow:hidden;
+  box-shadow:0 10px 22px rgba(0,0,0,.08); z-index: 60;
+}
+.ac-row{ display:flex; align-items:center; gap:10px; padding:10px 12px; text-decoration:none; color:#111; }
+.ac-row:hover, .ac-row.active{ background:#f6f6f6; }
+.ac-pill{ font-size:.82rem; border:1px solid #e5e7eb; padding:2px 8px; border-radius:999px; background:#fff; color:#374151; }
+.ac-pill.menu{ border-color:#ffd48a; background:#fff7e0; }
+.ac-pill.restaurant{ border-color:#cfe0ff; background:#edf4ff; }
+.ac-main{ font-weight:600; }
+.ac-sub{ font-size:.86rem; color:#6b7280; margin-left:auto; }

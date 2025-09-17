@@ -1,0 +1,122 @@
+<!-- /login/Profile.html -->
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>โปรไฟล์ผู้ใช้ • FoodFindGo</title>
+
+  <link rel="stylesheet" href="/assets/css/style.css">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+<style>
+  /* กลางจอแน่นอนตอนเปิดแบบ modal */
+  #editDialog:modal {
+    position: fixed;
+    inset: 50% auto auto 50%;   /* = top:50%, left:50% */
+    transform: translate(-50%, -50%);
+    margin: 0;                  /* กัน margin เด้งออกจากกลาง */
+    max-width: 520px;
+    width: min(520px, calc(100% - 24px));
+    max-height: calc(100dvh - 24px);
+    overflow: auto;
+    z-index: 1000;              /* เผื่อมี z-index สูงในธีม */
+  }
+
+  /* เผื่อเบราว์เซอร์ที่ยังไม่รองรับ :modal */
+  #editDialog[open] {
+    position: fixed;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    margin: 0;
+    max-width: 520px;
+    width: min(520px, calc(100% - 24px));
+    max-height: calc(100dvh - 24px);
+    overflow: auto;
+    z-index: 1000;
+  }
+
+  /* พื้นหลังมืดนุ่ม ๆ */
+  #editDialog::backdrop {
+    background: rgba(0,0,0,.45);
+    backdrop-filter: blur(2px);
+  }
+   /* ให้ข้อความ/เคอร์เซอร์ในช่องมองเห็นชัด */
+  #editDialog input{
+    background:#fff !important;
+    color:#111 !important;
+    caret-color:#111 !important;
+  }
+  #editDialog input::placeholder{
+    color:#9ca3af !important;  /* สี placeholder เทาอ่อน */
+    opacity:1;
+  }
+</style>
+
+
+</head>
+<body>
+  <!-- Navbar -->
+  <div id="navbar"></div>
+
+  <div class="profile-hero"></div>
+
+  <main class="profile-sheet">
+    <section class="profile-header">
+      <div class="avatar-xl"><i class="fa-regular fa-user"></i></div>
+      <div class="profile-name">
+        <h1>
+          <span id="loggedUserFName"></span>
+          <span id="loggedUserLName"></span>
+        </h1>
+        <div class="muted" style="margin-top:4px">
+           <b id="loggedUserRole"></b>
+           <span id="loggedUserEmail"></span>
+        </div>
+        <a class="edit-link" href="#" role="button">แก้ไขข้อมูล</a>
+      </div>
+    </section>
+
+    <section class="favorites-block">
+      <h2 class="section-title">รายการโปรดของฉัน</h2>
+      <div id="favoritesList" class="favorites-grid"></div>
+    </section>
+  </main>
+
+  <!-- Edit Profile Dialog -->
+  <dialog id="editDialog" style="border:none;border-radius:12px;max-width:520px;width:calc(100% - 24px);padding:0;box-shadow:0 12px 28px rgba(0,0,0,.18)">
+    <form id="editForm" method="dialog" style="padding:16px 16px 14px">
+      <h3 style="margin:0 0 12px;font-weight:800">แก้ไขข้อมูลผู้ใช้</h3>
+
+      <label style="display:block;margin:8px 0 4px">ชื่อ</label>
+      <input id="firstName" type="text" placeholder="ชื่อ" required style="width:100%;padding:10px;border:1px solid #e5e7eb;border-radius:10px">
+
+      <label style="display:block;margin:12px 0 4px">นามสกุล</label>
+      <input id="lastName" type="text" placeholder="นามสกุล" required style="width:100%;padding:10px;border:1px solid #e5e7eb;border-radius:10px ;">
+
+      <hr style="margin:16px 0;border:none;border-top:1px solid #eee">
+      <strong style="display:block;margin:0 0 6px">เปลี่ยนรหัสผ่าน (ไม่บังคับ)</strong>
+
+      <label style="display:block;margin:8px 0 4px">รหัสผ่านเดิม</label>
+      <input id="oldPass" type="password" placeholder="รหัสผ่านเดิม" style="width:100%;padding:10px;border:1px solid #e5e7eb;border-radius:10px; color: #000;" autocomplete="current-password">
+
+      <label style="display:block;margin:12px 0 4px">รหัสผ่านใหม่</label>
+      <input id="newPass" type="password" placeholder="อย่างน้อย 6 ตัวอักษร" style="width:100%;padding:10px;border:1px solid #e5e7eb;border-radius:10px; color: #000;" autocomplete="new-password">
+
+      <label style="display:block;margin:12px 0 4px">ยืนยันรหัสผ่านใหม่</label>
+      <input id="newPass2" type="password" placeholder="พิมพ์ซ้ำรหัสผ่านใหม่" style="width:100%;padding:10px;border:1px solid #e5e7eb;border-radius:10px; color: #000;" autocomplete="new-password">
+
+      <div id="editMsg" class="muted" style="min-height:20px;margin-top:8px"></div>
+
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px">
+        <button type="button" id="cancelEdit" class="btn" style="background:#f3f4f6">ยกเลิก</button>
+        <button id="saveEdit" class="btn btn-primary">บันทึก</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- สคริปต์หลักของเว็บ -->
+  <script type="module" src="/script.js"></script>
+  <!-- ย้ายสคริปต์โปรไฟล์มาไว้ท้าย body เพื่อให้ DOM โหลดครบ -->
+  <script type="module" src="/login/profile.js"></script>
+</body>
+</html>
