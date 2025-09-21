@@ -10,6 +10,11 @@
   <link rel="stylesheet" href="/assets/css/detail.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    .status.open{color:#16a34a}
+    .status.soon{color:#f59e0b}
+    .status.closed{color:#ef4444}
+  </style>
 </head>
 
 <body class="shop-page">
@@ -31,6 +36,11 @@
             <i class="fa-solid fa-location-dot"></i>
             <span id="userDistance">— km</span>
           </span>
+          <span class="bar">
+            <i class="fa-solid fa-clock"></i>
+            <span id="shopTime" class="status">—</span>
+          </span>
+
           <button id="btnDirections" class="btn">เส้นทาง</button>
           <button id="btnShare" class="btn">แชร์</button>
           <button id="btnSave" class="btn btn--primary">บันทึก</button>
@@ -45,16 +55,16 @@
 
       <!-- ขวา -->
       <aside>
+        <!-- (ลบการ์ดเวลาเปิด-ปิดที่นี่ออกแล้ว) -->
+
         <section class="card">
           <h3 class="section-title">เมนูของร้าน <span class="shopMenuTitle"></span></h3>
           <div id="menuList" class="menu-list"></div>
         </section>
 
-        <!-- ความคิดเห็น (ไม่มีระบบรายงาน / รอแอดมินอนุมัติ) -->
+        <!-- ความคิดเห็น -->
         <section class="card mt-12 comment-card">
           <h3 class="section-title">แสดงความคิดเห็น</h3>
-
-          <!-- ดาว 1–5 -->
           <div id="ratingStars" class="rating-grid" aria-label="ให้คะแนน">
             <button type="button" data-v="1" class="star-btn">★</button>
             <button type="button" data-v="2" class="star-btn">★</button>
@@ -63,11 +73,7 @@
             <button type="button" data-v="5" class="star-btn">★</button>
           </div>
           <input id="ratingInput" type="number" min="1" max="5" value="0" hidden />
-
-          <!-- กล่องคอมเมนต์ -->
           <textarea id="commentInput" class="textarea" rows="4" placeholder="พิมพ์ความคิดเห็นของคุณ…"></textarea>
-
-          <!-- ปุ่มส่ง + คะแนนเฉลี่ย -->
           <div class="send-row">
             <button id="btnSendComment" class="btn btn--primary btn--block">
               <i class="fa-solid fa-paper-plane"></i>
@@ -75,49 +81,22 @@
             </button>
             <div id="avgRatingLabel" class="avg-rating">ยังไม่มีคะแนน</div>
           </div>
-
           <hr class="comment-sep" />
-
-          <!-- เวลาใต้แสดงความคิดเห็น -->
           <div id="commentTimeHint" class="muted time-hint">⏱ เวลา: —</div>
-
-          <!-- รายการคอมเมนต์ -->
           <div id="commentsList" class="comments-list"></div>
         </section>
 
-        <!-- ใกล้เคียง -->
         <section class="card related-section mt-12">
-          <h3 class="section-title">ใกล้เคียง</h3>
+          <h3 class="section-title">ร้านใกล้เคียง</h3>
           <div id="relatedWrap" class="related-grid"></div>
         </section>
       </aside>
     </div>
   </main>
-  <!-- Footer -->
-<footer class="footer">
-  <div class="container footer-con">
-    <div class="footer-col">
-      <h4>เกี่ยวกับเรา</h4>
-      <p>FoodFindGo เว็บไซต์แนะนำเมนูอาหารและหาร้านใกล้เคียง</p>
-    </div>
 
-    <div class="footer-col">
-      <h4>ลิงก์ด่วน</h4>
-      <ul>
-        <li><a href="/">หน้าหลัก</a></li>
-        <li><a href="/Menu/nearby.html">ร้านอาหาร</a></li>
-        <li><a href="/login/Login.html">เข้าสู่ระบบ</a></li>
-      </ul>
-    </div>
-    <div class="footer-col">
-      <h4>ติดต่อ</h4>
-      <p><i class="fa-solid fa-location-dot"></i> อุบลราชธานี, ไทย</p>
-    </div>
-  </div>
-  <div class="footer-bottom">
-    <p>&copy; 2025 FoodFindGo. All rights reserved.</p>
-  </div>
-</footer>
+  <!-- Footer -->
+  <footer class="footer">…</footer>
+
   <!-- Scripts -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script type="module" src="/services/firebase.js"></script>

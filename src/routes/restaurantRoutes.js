@@ -1,158 +1,109 @@
-// src/routes/restaurantRoutes.js
 const express = require('express');
 const router = express.Router();
+const mongoose = require('mongoose');
 
 const Restaurant = require('../models/Restaurant');
-const Menu = require('../models/Menu');
-const Review = require('../models/Review');
 
-// GET /api/restaurants/nearby?lat=&lng=&radius=&limit=
-router.get('/nearby', async (req, res) => {
-  try {
-    const lat = parseFloat(req.query.lat);
-    const lng = parseFloat(req.query.lng);
-    const radius = parseInt(req.query.radius || '2000', 10);
-    const limit = Math.min(parseInt(req.query.limit || '50', 10), 200);
-    if (isNaN(lat) || isNaN(lng)) {
-      return res.status(400).json({ error: 'ต้องระบุ lat,lng' });
-    }
-    const data = await Restaurant.aggregate([
-      {
-        $geoNear: {
-          near: { type: 'Point', coordinates: [lng, lat] },
-          key: 'location',
-          distanceField: 'distance',
-          maxDistance: radius,
-          spherical: true
-        }
-      },
-      { $limit: limit }
-    ]);
-    res.json(data);
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
+// helper: เก็บเฉพาะคีย์ที่อนุญาต
+const pick = (obj, keys) => keys.reduce((o,k)=>{
+  if (Object.prototype.hasOwnProperty.call(obj, k) && obj[k] !== undefined) o[k] = obj[k];
+  return o;
+}, {});
 
-// GET /api/restaurants/by-menu?menu=ชื่อเมนู
-router.get('/by-menu', async (req, res) => {
-  try {
-    const name = (req.query.menu || '').trim();
-    if (!name) return res.status(400).json({ error: 'ต้องระบุชื่อเมนู' });
+// helper: แปลง lat/lng เป็น number
+const toNum = v => (v === '' || v === null || v === undefined) ? undefined : Number(v);
 
-    const menus = await Menu.find({ name }).populate('restaurant');
-    const uniq = {};
-    menus.forEach(m => { if (m.restaurant) uniq[m.restaurant._id] = m.restaurant; });
-    res.json(Object.values(uniq));
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
+// ===================== READ =====================
 
 // GET /api/restaurants
-router.get('/', async (req, res) => {
+// - ทั้งหมด
+// - หรือค้นด้วย ?id=<mongoId> / ?restaurantId=<mongoId>
+router.get('/', async (req, res, next) => {
   try {
-    const { q, limit = 50 } = req.query;
-    const query = q ? { name: new RegExp(q, 'i') } : {};
-    const data = await Restaurant.find(query).limit(parseInt(limit, 10));
-    res.json(data);
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
+    const { id, restaurantId } = req.query;
 
-// POST /api/restaurants
-router.post('/', async (req, res) => {
-  try {
-    const { name, address, image, phone, lng, lat } = req.body;
-    if (!name) return res.status(400).json({ error: 'ต้องระบุชื่อร้าน' });
-    if (lng === undefined || lat === undefined) return res.status(400).json({ error: 'ต้องระบุพิกัด (lng,lat)' });
-    const r = await Restaurant.create({
-      name, address, image, phone,
-      location: { type: 'Point', coordinates: [Number(lng), Number(lat)] }
-    });
-    res.status(201).json(r);
-  } catch (e) { res.status(400).json({ error: e.message }); }
-});
-
-// PUT /api/restaurants/:id
-router.put('/:id', async (req, res) => {
-  try {
-    const { name, address, image, phone, lng, lat } = req.body;
-    const update = { name, address, image, phone };
-    if (lng !== undefined && lat !== undefined) {
-      update.location = { type: 'Point', coordinates: [Number(lng), Number(lat)] };
+    const qid = id || restaurantId;
+    if (qid) {
+      if (!mongoose.Types.ObjectId.isValid(qid)) {
+        return res.status(400).json({ error: 'invalid id' });
+      }
+      const doc = await Restaurant.findById(qid).lean();
+      return doc ? res.json([doc]) : res.json([]);
     }
-    const r = await Restaurant.findByIdAndUpdate(req.params.id, update, { new: true });
-    if (!r) return res.status(404).json({ error: 'ไม่พบร้าน' });
-    res.json(r);
-  } catch (e) { res.status(400).json({ error: e.message }); }
+
+    // default: คืนรายการทั้งหมด
+    const items = await Restaurant.find().lean();
+    res.json(items);
+  } catch (e) { next(e); }
 });
 
-// DELETE /api/restaurants/:id
-router.delete('/:id', async (req, res) => {
-  try {
-    const r = await Restaurant.findByIdAndDelete(req.params.id);
-    if (!r) return res.status(404).json({ error: 'ไม่พบร้าน' });
-    res.json(r);
-  } catch (e) { res.status(400).json({ error: e.message }); }
-});
-
-/* -------------------- Reviews (วางก่อน '/:id') -------------------- */
-
-// GET /api/restaurants/:id/reviews
-router.get('/:id/reviews', async (req, res) => {
+// GET /api/restaurants/:id  <-- เพิ่มตัวนี้
+router.get('/:id', async (req, res, next) => {
   try {
     const { id } = req.params;
-    const limit = Math.min(parseInt(req.query.limit || '20', 10), 50);
-    const skip  = parseInt(req.query.skip || '0', 10);
-    const items = await Review.find({ restaurant: id })
-      .sort({ createdAt: -1 })
-      .skip(skip).limit(limit)
-      .lean();
-    res.json(items);
-  } catch (e) { res.status(500).json({ error: e.message }); }
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ error: 'invalid id' });
+    }
+    const doc = await Restaurant.findById(id).lean();
+    if (!doc) return res.status(404).json({ error: 'not found' });
+    res.json(doc);
+  } catch (e) { next(e); }
 });
 
-// POST /api/restaurants/:id/reviews
-router.post('/:id/reviews', async (req, res) => {
+// ===================== CREATE =====================
+
+// POST /api/restaurants
+router.post('/', async (req, res, next) => {
   try {
-    const r = await Restaurant.findById(req.params.id);
-    if (!r) return res.status(404).json({ error: 'ไม่พบร้าน' });
+    let payload = pick(req.body, [
+      'name','address','phone','image','hours','owners','ownerUid','location','lat','lng'
+    ]);
 
-    const text = (req.body.text || '').trim();
-    if (!text) return res.status(400).json({ error: 'text_required' });
+    // แปลง lat/lng เป็น number (รองรับที่มาจากฟอร์มเป็นสตริง)
+    const lat = toNum(payload.lat);
+    const lng = toNum(payload.lng);
 
-    let rating = Number(req.body.rating);
-    if (!Number.isFinite(rating)) rating = undefined;
-    if (rating && (rating < 1 || rating > 5)) {
-      return res.status(400).json({ error: 'rating 1..5' });
+    // ถ้าไม่ได้ส่ง location (GeoJSON) แต่มี lat/lng ให้ประกอบเอง
+    if (!payload.location && Number.isFinite(lng) && Number.isFinite(lat)) {
+      payload.location = { type:'Point', coordinates:[lng, lat] };
     }
 
-    const review = await Review.create({
-      restaurant: r._id,
-      text,
-      rating,
-      by: (req.body.by || req.body.userName || 'anonymous').trim()
-    });
-
-    if (Number.isFinite(rating)) {
-      const count = r.reviewCount ?? 0;
-      const avg   = r.avgRating   ?? 0;
-      const newCount = count + 1;
-      const newAvg   = ((avg * count) + rating) / newCount;
-      r.reviewCount  = newCount;
-      r.avgRating    = Math.round(newAvg * 10) / 10;
-      await r.save();
-    }
-
-    res.status(201).json(review);
-  } catch (e) { res.status(400).json({ error: e.message }); }
+    const doc = await Restaurant.create(payload);
+    res.status(201).json(doc);
+  } catch (e) { next(e); }
 });
 
-/* ------------------ /Reviews --------------------- */
+// ===================== UPDATE =====================
 
-// GET /api/restaurants/:id   (วางท้ายสุด)
-router.get('/:id', async (req, res) => {
+// PUT /api/restaurants/:id
+router.put('/:id', async (req, res, next) => {
   try {
-    const r = await Restaurant.findById(req.params.id);
-    if (!r) return res.status(404).json({ error: 'ไม่พบร้าน' });
-    res.json(r);
-  } catch (e) { res.status(400).json({ error: e.message }); }
+    const id = req.params.id;
+
+    let payload = pick(req.body, [
+      'name','address','phone','image','hours','owners','ownerUid','location','lat','lng'
+    ]);
+
+    const lat = toNum(payload.lat);
+    const lng = toNum(payload.lng);
+    if (!payload.location && Number.isFinite(lng) && Number.isFinite(lat)) {
+      payload.location = { type:'Point', coordinates:[lng, lat] };
+    }
+
+    const doc = await Restaurant.findByIdAndUpdate(id, payload, { new:true, runValidators:true });
+    if (!doc) return res.status(404).json({ error: 'not found' });
+    res.json(doc);
+  } catch (e) { next(e); }
+});
+
+// ===================== DELETE =====================
+
+// DELETE /api/restaurants/:id
+router.delete('/:id', async (req, res, next) => {
+  try {
+    await Restaurant.findByIdAndDelete(req.params.id);
+    res.json({ ok:true });
+  } catch (e) { next(e); }
 });
 
 module.exports = router;

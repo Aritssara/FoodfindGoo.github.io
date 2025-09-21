@@ -28,7 +28,7 @@ function showSection(key){
   sideLinks.forEach(a => a.parentElement.classList.remove('active'));
   document.querySelector(`#sidebar .side-menu.top li a[data-section="${key}"]`)?.parentElement.classList.add('active');
 
-  // โหลดข้อมูลทันทีเมื่อเปลี่ยนแท็บ
+  // โหลดข้อมูลเมื่อเปลี่ยนแท็บ
   if (key === 'moderation') loadMods();
   if (key === 'tables')     refreshTiles();
 }
@@ -36,7 +36,7 @@ sideLinks.forEach(a => {
   a.addEventListener('click', (e) => {
     e.preventDefault();
     const tab = a.dataset.section;
-    showSection(tab); // ไม่ต้องเรียก loadMods()/refreshTiles() ซ้ำแล้ว
+    showSection(tab);
   });
 });
 
@@ -111,6 +111,7 @@ const els = {
   rLng   : document.getElementById('restaurantLng'),
   rAddr  : document.getElementById('restaurantAddress'),
   rPhone : document.getElementById('restaurantPhone'),
+  rHours : document.getElementById('restaurantHours'), // ✅ เพิ่มอ้างอิง hours
   btnAddRestaurant   : document.getElementById('btnAddRestaurant'),
   btnClearRestaurant : document.getElementById('btnClearRestaurant'),
   // menu form
@@ -169,14 +170,16 @@ function renderRestaurantsTable(list = state.restaurants){
   list.forEach((r, idx) => {
     const lat = r.location?.coordinates?.[1] ?? r.lat ?? '-';
     const lng = r.location?.coordinates?.[0] ?? r.lng ?? '-';
+    const hours = r.hours ? mEsc(r.hours) : '-';
     const tr = document.createElement('tr');
     tr.dataset.id = r._id || '';
     tr.innerHTML = `
       <td>${idx+1}</td>
-      <td>${r.image ? `<img class="thumb" src="${r.image}" alt="${r.name}">` : '-'}</td>
-      <td><strong>${r.name || '-'}</strong><div class="muted">${r._id || ''}</div></td>
-      <td>${r.address || '-'}</td>
-      <td>${r.phone || '-'}</td>
+      <td>${r.image ? `<img class="thumb" src="${r.image}" alt="${mEsc(r.name||'ร้าน')}">` : '-'}</td>
+      <td><strong>${mEsc(r.name || '-')}</strong><div class="muted">${r._id || ''}</div></td>
+      <td>${mEsc(r.address || '-')}</td>
+      <td>${mEsc(r.phone || '-')}</td>
+      <td>${hours}</td> <!-- ✅ คอลัมน์เวลา -->
       <td><div class="muted">${lat}, ${lng}</div></td>
       <td class="nowrap">
         <button class="button" data-act="edit-rest">แก้</button>
@@ -202,11 +205,11 @@ function renderMenusTable(list = state.menus){
     tr.dataset.restaurantId = m.restaurant?._id || m.restaurant || '';
     tr.innerHTML = `
       <td>${idx+1}</td>
-      <td>${m.image ? `<img class="thumb" src="${m.image}" alt="${m.name}">` : '-'}</td>
-      <td><strong>${m.name || '-'}</strong><div class="muted">${m._id || ''}</div></td>
-      <td>${m.type || '-'}</td>
+      <td>${m.image ? `<img class="thumb" src="${m.image}" alt="${mEsc(m.name||'เมนู')}">` : '-'}</td>
+      <td><strong>${mEsc(m.name || '-')}</strong><div class="muted">${m._id || ''}</div></td>
+      <td>${mEsc(m.type || '-')}</td>
       <td>${(m.price ?? '-') + (m.price ? ' ฿' : '')}</td>
-      <td>${m.restaurant?.name || '-'}</td>
+      <td>${m.restaurant?.name ? mEsc(m.restaurant.name) : '-'}</td>
       <td>${m.isFeatured ? `⭐ ${m.featuredBoost || 0}` : '-'}</td>
       <td class="nowrap">
         <button class="button" data-act="edit-menu">แก้</button>
@@ -249,6 +252,7 @@ function setRestaurantEditing(r){
   if (els.rImg)   els.rImg.value   = r?.image || '';
   if (els.rAddr)  els.rAddr.value  = r?.address || '';
   if (els.rPhone) els.rPhone.value = r?.phone || '';
+  if (els.rHours) els.rHours.value = r?.hours || '';   // ✅ preload hours
   const lat = r?.location?.coordinates?.[1] ?? r?.lat ?? '';
   const lng = r?.location?.coordinates?.[0] ?? r?.lng ?? '';
   if (els.rLat) els.rLat.value = lat;
@@ -265,6 +269,7 @@ async function addOrUpdateRestaurant(){
     image:   (els.rImg?.value || '').trim() || undefined,
     address: (els.rAddr?.value || '').trim() || undefined,
     phone:   (els.rPhone?.value || '').trim() || undefined,
+    hours:   (els.rHours?.value || '').trim() || undefined, // ✅ ส่งค่า hours ไป API
     location: (Number.isFinite(lat) && Number.isFinite(lng)) ? { type:"Point", coordinates:[lng, lat] } : undefined,
     lat: Number.isFinite(lat) ? lat : undefined,
     lng: Number.isFinite(lng) ? lng : undefined,
@@ -279,7 +284,7 @@ async function addOrUpdateRestaurant(){
     });
   }
   setRestaurantEditing(null);
-  clearVals(['restaurantName','restaurantImage','restaurantLat','restaurantLng','restaurantAddress','restaurantPhone']);
+  clearVals(['restaurantName','restaurantImage','restaurantLat','restaurantLng','restaurantAddress','restaurantPhone','restaurantHours']); // ✅ clear hours
   await Promise.all([loadRestaurantOptions(), loadRestaurantsTable(), refreshTiles()]);
 }
 
@@ -405,7 +410,7 @@ window.addEventListener('DOMContentLoaded', async () => {
   });
   els.btnClearRestaurant?.addEventListener('click', () => {
     setRestaurantEditing(null);
-    clearVals(['restaurantName','restaurantImage','restaurantLat','restaurantLng','restaurantAddress','restaurantPhone']);
+    clearVals(['restaurantName','restaurantImage','restaurantLat','restaurantLng','restaurantAddress','restaurantPhone','restaurantHours']); // ✅ clear hours
   });
 
   // เมนู: ปุ่มฟอร์ม

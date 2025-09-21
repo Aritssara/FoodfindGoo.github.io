@@ -8,7 +8,7 @@ const cors = require("cors");
 const cookieParser = require("cookie-parser");
 const crypto = require("crypto");
 
-// โหลด firebase-admin instance กลาง (อ่าน cred จาก ENV ภายใน services/firebaseAdmin)
+// โหลด firebase-admin instance กลาง (อ่าน cred จาก .env)
 require("./services/firebaseAdmin");
 
 // ใช้ middleware ตรวจโทเคน/บทบาท
@@ -17,21 +17,9 @@ const { requireAuth, requireRole } = require("./Middlewares/authMiddleware");
 const app = express();
 app.set("trust proxy", 1);
 
-/* =========================
-   CORS: allowlist จาก ENV
-   ========================= */
-const allowlist = (process.env.CORS_ORIGIN || "")
-  .split(",")
-  .map(s => s.trim())
-  .filter(Boolean);
-
+// ===== Middleware =====
 const corsOptions = {
-  origin(origin, cb) {
-    // อนุญาตเครื่องมือ / health-check ที่ไม่มี Origin
-    if (!origin) return cb(null, true);
-    if (allowlist.length === 0 || allowlist.includes(origin)) return cb(null, true);
-    return cb(new Error("Not allowed by CORS"));
-  },
+  origin: true,
   credentials: true,
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
@@ -88,7 +76,7 @@ app.post("/api/analytics/visit", async (req, res) => {
       return res.json({ ok: true, increased: true, counter });
     }
 
-    // ถ้าจะนับ total ทุกครั้ง ปลดคอมเมนต์ด้านล่าง
+    // นับ total ทุกครั้ง (ถ้าต้องการ) -> ปลดคอมเมนต์บรรทัดล่าง
     // await SiteCounter.updateOne({ key: "site" }, { $inc: { total: 1 } }, { upsert: true });
 
     const counter = await SiteCounter.findOne({ key: "site" }).lean();
@@ -119,7 +107,7 @@ app.use("/api/search", searchRouter);
 // admin dashboard เฉพาะแอดมิน
 app.use("/api/admin", requireAuth, requireRole("admin"), adminRouter);
 
-// comments: lock เฉพาะ endpoint moderation ภายในไฟล์ router
+// comments: อย่า lock ทั้ง router ให้แอดมิน — ไปล็อกเฉพาะ endpoint moderation ภายในไฟล์ router
 app.use("/api/comments", commentRouter);
 
 // owner: เฉพาะ owner หรือ admin
@@ -133,11 +121,10 @@ app.get("/api/whoami", requireAuth, (req, res) => {
   });
 });
 
-// ===== Health check (มีทั้ง /api/health และ /health) =====
-app.get("/api/health", (_req, res) => res.json({ ok: true, time: new Date().toISOString() }));
-app.get("/health", (_req, res) => res.json({ ok: true, time: new Date().toISOString() }));
+// health check
+app.get("/health", (_req, res) => res.json({ ok: true }));
 
-// ===== Static files (ยังคงไว้ได้ ถ้ามีหน้า admin ภายใน Render) =====
+// ===== Static files =====
 const PUBLIC_DIR = path.resolve(__dirname, "..", "public");
 app.use(express.static(PUBLIC_DIR));
 
@@ -157,8 +144,8 @@ app.use((err, _req, res, _next) => {
 
 // ===== Start Server =====
 const PORT = process.env.PORT || 5001;
-app.listen(PORT, "0.0.0.0", () => {
-  console.log(`Server running on port ${PORT}`);
-  if (allowlist.length) console.log("CORS allowlist:", allowlist);
-  console.log("Static dir:", PUBLIC_DIR);
+app.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
+  console.log(" MongoDB URI:", MONGODB_URI);
+  console.log(" Static dir:", PUBLIC_DIR);
 });

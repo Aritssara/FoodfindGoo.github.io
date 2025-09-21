@@ -153,6 +153,8 @@
       <!-- 3) Shop & Menu Management -->
       <section class="panel hidden" id="section-shops" aria-labelledby="hdr-shops">
         <h2 id="hdr-shops">จัดการข้อมูลร้าน</h2>
+
+        <!-- เพิ่มร้านอาหาร -->
         <div class="panel inset">
           <h2>เพิ่มร้านอาหาร</h2>
           <div class="form-grid">
@@ -162,6 +164,9 @@
             <input id="restaurantLng" class="input" placeholder="ลองจิจูด (Longitude)" />
             <input id="restaurantAddress" class="input" placeholder="ที่อยู่ (ไม่บังคับ)" />
             <input id="restaurantPhone" class="input" placeholder="เบอร์โทร (ไม่บังคับ)" />
+
+            <!-- ✅ ใหม่: เวลาเปิด-ปิด (ข้อความรวม) -->
+            <input id="restaurantHours" class="input full" placeholder="เวลาเปิด-ปิด (เช่น จ.-ส. 09:00–20:00, อา. หยุด)" />
           </div>
           <div class="actions-row">
             <button class="button primary" id="btnAddRestaurant"><i class='bx bx-plus'></i>&nbsp;เพิ่มร้านอาหาร</button>
@@ -170,6 +175,7 @@
           <div class="muted">ระบบจะสร้างพิกัด GeoJSON จากค่า lng/lat ให้โดยอัตโนมัติ</div>
         </div>
 
+        <!-- เพิ่มเมนูอาหาร -->
         <div class="panel inset">
           <h2>เพิ่มเมนูอาหาร</h2>
           <div class="form-grid">
@@ -210,6 +216,8 @@
                   <th>ชื่อร้าน</th>
                   <th>ที่อยู่</th>
                   <th>โทร</th>
+                  <!-- ✅ เพิ่มคอลัมน์เวลา -->
+                  <th>เวลา</th>
                   <th>พิกัด</th>
                   <th>จัดการ</th>
                 </tr>

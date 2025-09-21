@@ -5,12 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>แดชบอร์ดเจ้าของร้าน • FoodFindGo</title>
 
-  <!-- สไตล์หลักของโปรเจกต์ + สไตล์หน้า owner -->
   <link rel="stylesheet" href="/assets/css/owner.css"/>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
 </head>
 <body class="owner-page">
-  <!-- แถบบน -->
+  <!-- Topbar -->
   <header class="owner-topbar">
     <div class="topbar-inner">
       <div class="brand">FoodfindGo</div>
@@ -23,33 +22,24 @@
     </div>
   </header>
 
-  <!-- โครงเลย์เอาต์: ซ้ายเมนู / ขวาคอนเทนต์ -->
   <div class="owner-shell">
+    <!-- Sidebar -->
     <aside class="owner-sidebar" id="ownerSidebar">
       <nav class="side-nav">
-        <a href="#" class="side-link active" data-tab="owner">
-          จัดการข้อมูล owner
-        </a>
-        <a href="#" class="side-link" data-tab="restaurant">
-          จัดการข้อมูลร้าน
-        </a>
-        <a href="#" class="side-link" data-tab="menus">
-          ตารางข้อมูล
-        </a>
-        <a href="#" class="side-link side-logout" data-tab="logout">
-          ออกจากระบบ
-        </a>
+        <a href="#" class="side-link active" data-tab="owner">จัดการข้อมูล owner</a>
+        <a href="#" class="side-link" data-tab="restaurant">จัดการข้อมูลร้าน</a>
+        <a href="#" class="side-link" data-tab="menus">ตารางข้อมูล</a>
+        <a href="#" class="side-link side-logout" data-tab="logout">ออกจากระบบ</a>
       </nav>
     </aside>
 
+    <!-- Content -->
     <main class="owner-content">
       <div class="container owner-wrap">
 
         <!-- TAB: owner info -->
         <section class="card tab-panel" id="tab-owner">
-          <div class="card-head">
-            <h2>ข้อมูลเจ้าของร้าน</h2>
-          </div>
+          <div class="card-head"><h2>ข้อมูลเจ้าของร้าน</h2></div>
           <div class="grid-2">
             <div>
               <label>ชื่อที่แสดง</label>
@@ -62,10 +52,16 @@
           </div>
         </section>
 
-        <!-- TAB: ข้อมูลร้านของฉัน -->
+        <!-- TAB: ร้านของฉัน -->
         <section class="card tab-panel hidden" id="tab-restaurant">
           <div class="card-head">
             <h2>ข้อมูลร้านของฉัน</h2>
+            <!-- ✅ เพิ่มตัวเลือกสลับร้าน -->
+            <div class="actions">
+              <label>เลือกร้าน:
+                <select id="restaurantSelect"></select>
+              </label>
+            </div>
           </div>
 
           <div id="noRestaurant" class="muted" hidden>
@@ -75,6 +71,7 @@
             </button>
           </div>
 
+          <!-- form สร้าง/แก้ไขร้าน -->
           <form id="restaurantForm" class="grid-2" hidden>
             <input type="hidden" id="restaurantId"/>
 
@@ -94,18 +91,18 @@
 
             <div>
               <label>ละติจูด (lat)</label>
-             <input id="rLat" type="number" step="any" placeholder="15.242345">
+              <input id="rLat" type="number" step="any" placeholder="15.242345">
             </div>
             <div>
               <label>ลองจิจูด (lng)</label>
-             <input id="rLng" type="number" step="any" placeholder="104.856789">
+              <input id="rLng" type="number" step="any" placeholder="104.856789">
             </div>
 
             <div>
               <label>Facebook</label>
               <input id="rFacebook" placeholder="ลิงก์เพจ"/>
             </div>
-          
+
             <div class="col-span-2">
               <label>รูปภาพหน้าร้าน (URL)</label>
               <input id="rImage" placeholder="https://..."/>
@@ -122,6 +119,7 @@
             </div>
           </form>
 
+          <!-- มุมมองสรุปร้าน -->
           <div id="restaurantView" class="restaurant-view" hidden>
             <img id="rPhoto" alt="ร้าน"/>
             <div>
@@ -129,25 +127,22 @@
               <p id="rMeta" class="muted"></p>
               <p id="rContact" class="muted"></p>
               <div class="right">
-                <button id="btnEditRestaurant" class="btn">
-                  <i class="fa fa-pen"></i> แก้ไขร้าน
-                </button>
+                <button id="btnEditRestaurant" class="btn"><i class="fa fa-pen"></i> แก้ไขร้าน</button>
               </div>
             </div>
           </div>
         </section>
 
-        <!-- TAB: เมนูในร้าน -->
+        <!-- TAB: เมนู -->
         <section class="card tab-panel hidden" id="tab-menus">
           <div class="card-head">
             <h2>ตารางข้อมูลเมนู</h2>
             <div class="actions">
-              <button class="btn btn-primary" id="btnNewMenu">
-                <i class="fa fa-plus"></i> เพิ่มเมนู
-              </button>
+              <button class="btn btn-primary" id="btnNewMenu"><i class="fa fa-plus"></i> เพิ่มเมนู</button>
             </div>
           </div>
 
+          <!-- ฟอร์มเมนู -->
           <form id="menuForm" class="grid-3" hidden>
             <input type="hidden" id="mId"/>
             <div>
@@ -181,6 +176,7 @@
             </div>
           </form>
 
+          <!-- ตารางเมนู -->
           <div class="table-wrap">
             <table class="table" id="menuTable">
               <thead>
@@ -189,6 +185,8 @@
                   <th>ชื่อเมนู</th>
                   <th>ราคา</th>
                   <th>หมวด</th>
+                  <!-- ✅ เพิ่มคอลัมน์รายละเอียดให้ตรงกับ owner.js -->
+                  <th>รายละเอียด</th>
                   <th>แนะนำ</th>
                   <th></th>
                 </tr>
@@ -202,17 +200,10 @@
     </main>
   </div>
 
- <!-- สคริปต์หลักของเว็บ (ถ้ามี navbar) -->
-<script type="module" src="/script.js"></script>
-
-<!-- ต้อง initialize Firebase ก่อน guard -->
-<script type="module" src="/services/firebase.js"></script>
-
-<!-- guard: เข้าได้เฉพาะ owner หรือ admin -->
-<script type="module" src="/services/owner_guard.js"></script>
-
-<!--  ชี้ไฟล์ให้ตรงกับที่มีจริง: owner.js -->
-<script type="module" src="/owner/owner.js"></script>
-
+  <!-- scripts -->
+  <script type="module" src="/script.js"></script>
+  <script type="module" src="/services/firebase.js"></script>
+  <script type="module" src="/services/owner_guard.js"></script>
+  <script type="module" src="/owner/owner.js"></script>
 </body>
 </html>

@@ -10,46 +10,41 @@
 
   <style>
     /* ===== Hero ===== */
-.hero{
-  position: relative;
-  overflow: hidden;                 /* ตัดขอบเบลอไม่ให้ล้น */
-  gap: 10px;
-  color: #ffffff;
-  text-align: center;
-  padding: 36px 16px 28px;
-  border-radius: 0 0 24px 24px;
-}
-
-/* วางรูปพื้นหลังบน ::before แล้วเบลอ */
-.hero::before{
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: url('/background/รวมอาหาร.jpg') center/cover no-repeat;
-  filter: blur(2px);
-  transform: scale(1.08);           /* ซูมเล็กน้อยกันขอบฟุ้ง */
-  z-index: 0;
-}
-
-/* โอเวอร์เลย์ให้ตัวอักษรอ่านง่ายขึ้น */
-.hero::after{
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(0deg, rgba(0,0,0,.45), rgba(0,0,0,.25));
-  z-index: 1;
-}
-
-/* ทำให้ข้อความอยู่เหนือพื้นหลัง */
-.hero > *{
-  position: relative;
-  z-index: 2;
-}
-
-/* ขนาดตัวอักษร */
-.hero h1{ font-size: 32px; margin: 0 0 6px; }
-.hero .sub{ opacity: .95; font-weight: 600; }
-
+    .hero{
+      position: relative;
+      overflow: hidden;                 /* ตัดขอบเบลอไม่ให้ล้น */
+      gap: 10px;
+      color: #ffffff;
+      text-align: center;
+      padding: 36px 16px 28px;
+      border-radius: 0 0 24px 24px;
+    }
+    /* วางรูปพื้นหลังบน ::before แล้วเบลอ */
+    .hero::before{
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: url('/background/รวมอาหาร.jpg') center/cover no-repeat;
+      filter: blur(2px);
+      transform: scale(1.08);           /* ซูมเล็กน้อยกันขอบฟุ้ง */
+      z-index: 0;
+    }
+    /* โอเวอร์เลย์ให้ตัวอักษรอ่านง่ายขึ้น */
+    .hero::after{
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(0deg, rgba(0,0,0,.45), rgba(0,0,0,.25));
+      z-index: 1;
+    }
+    /* ทำให้ข้อความอยู่เหนือพื้นหลัง */
+    .hero > *{
+      position: relative;
+      z-index: 2;
+    }
+    /* ขนาดตัวอักษร */
+    .hero h1{ font-size: 32px; margin: 0 0 6px; }
+    .hero .sub{ opacity: .95; font-weight: 600; }
 
     /* ===== Toolbar ===== */
     .toolbar{ max-width:1200px; margin:18px auto 8px; padding:0 12px;
@@ -99,8 +94,8 @@
     }
     @keyframes shimmer{ 100%{ transform:translateX(100%); } }
     .sk-card{ height:280px; border-radius:18px; border:1px solid #eee; }
-  
-    /* Bottom sheet for filters */
+
+    /* ===== Bottom sheet for filters ===== */
     .sheet{
       position:fixed; left:0; right:0; bottom:0; background:#fff;
       border-top-left-radius:16px; border-top-right-radius:16px;
@@ -109,7 +104,6 @@
     }
     .sheet.show{ transform:translateY(0); }
     .sheet .row{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
-    
   </style>
 </head>
 <body>
@@ -117,18 +111,18 @@
   <div id="navbar"></div>
 
   <!-- Hero -->
-  <section class="hero" role="banner">
+  <section class="hero" role="banner" aria-label="ส่วนหัว ร้านอาหารใกล้เคียง">
     <h1>ร้านอาหารใกล้เคียง</h1>
-    <div class="sub" aria-live="polite"><i class="fa-solid fa-location-dot"></i> <span id="summary">กำลังหาตำแหน่ง...</span></div>
+    <div class="sub" aria-live="polite"><i class="fa-solid fa-location-dot" aria-hidden="true"></i> <span id="summary">กำลังหาตำแหน่ง...</span></div>
   </section>
 
   <!-- Toolbar -->
   <div class="toolbar" role="region" aria-label="ตัวเลือกการค้นหา">
     <div class="row" style="gap:12px;">
-      <button id="btnFilter" class="btn" style="padding:10px 14px;">
-        <i class="fa-solid fa-filter"></i> ตัวกรอง
+      <button id="btnFilter" class="btn" style="padding:10px 14px;" aria-controls="filterSheet" aria-expanded="false">
+        <i class="fa-solid fa-filter" aria-hidden="true"></i> ตัวกรอง
       </button>
-      <small id="foundText" class="subtle"></small>
+      <small id="foundText" class="subtle" aria-live="polite"></small>
     </div>
 
     <div class="row">
@@ -136,21 +130,20 @@
       <select id="sortSelect" class="sort" aria-label="เลือกการเรียงผลลัพธ์">
         <option value="distance-asc">ระยะทางใกล้ → ไกล</option>
         <option value="distance-desc">ระยะทางไกล → ใกล้</option>
-        <option value="rating-desc">คะแนนสูงสุด</option>
         <option value="review-desc">จำนวนรีวิวมากสุด</option>
       </select>
     </div>
   </div>
 
-  <!-- Car Filter sheet -->
-  <div id="filterSheet" class="sheet" aria-hidden="true">
+  <!-- Filter sheet -->
+  <div id="filterSheet" class="sheet" role="dialog" aria-modal="true" aria-hidden="true" aria-label="ตัวกรองร้านอาหาร">
     <h3 style="margin-bottom:8px;">ตัวกรอง</h3>
     <div class="row" style="margin:10px 0;">
       <label><input type="checkbox" id="fOpenNow"> เปิดตอนนี้</label>
     </div>
     <div class="row" style="margin:10px 0;">
       <label style="min-width:110px;">คะแนนขั้นต่ำ</label>
-      <select id="fMinRating">
+      <select id="fMinRating" aria-label="คะแนนขั้นต่ำ">
         <option value="0">ทั้งหมด</option>
         <option value="3.5">3.5+</option>
         <option value="4.0">4.0+</option>
@@ -159,7 +152,7 @@
     </div>
     <div class="row" style="margin:10px 0;">
       <label style="min-width:110px;">ระยะทาง</label>
-      <input type="range" id="fMaxDist" min="500" max="3000" step="250" value="2000">
+      <input type="range" id="fMaxDist" min="500" max="3000" step="250" value="2000" aria-labelledby="fMaxDistLabel">
       <span id="fMaxDistLabel" class="subtle">2 กม.</span>
     </div>
     <div class="actions" style="margin-top:10px; display:flex; gap:8px; justify-content:flex-end;">
@@ -169,37 +162,38 @@
   </div>
 
   <!-- Cards -->
-  <section id="cards" class="grid" aria-live="polite">
+  <section id="cards" class="grid" aria-live="polite" aria-busy="true">
     <!-- skeleton 6 ใบ -->
     <div class="sk-card skeleton"></div><div class="sk-card skeleton"></div><div class="sk-card skeleton"></div>
     <div class="sk-card skeleton"></div><div class="sk-card skeleton"></div><div class="sk-card skeleton"></div>
   </section>
-  
-  <!-- Footer -->
-<footer class="footer">
-  <div class="container footer-con">
-    <div class="footer-col">
-      <h4>เกี่ยวกับเรา</h4>
-      <p>FoodFindGo เว็บไซต์แนะนำเมนูอาหารและหาร้านใกล้เคียง</p>
-    </div>
 
-    <div class="footer-col">
-      <h4>ลิงก์ด่วน</h4>
-      <ul>
-        <li><a href="/">หน้าหลัก</a></li>
-        <li><a href="/Menu/nearby.html">ร้านอาหาร</a></li>
-        <li><a href="/login/Login.html">เข้าสู่ระบบ</a></li>
-      </ul>
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container footer-con">
+      <div class="footer-col">
+        <h4>เกี่ยวกับเรา</h4>
+        <p>FoodFindGo เว็บไซต์แนะนำเมนูอาหารและหาร้านใกล้เคียง</p>
+      </div>
+
+      <div class="footer-col">
+        <h4>ลิงก์ด่วน</h4>
+        <ul>
+          <li><a href="/">หน้าหลัก</a></li>
+          <li><a href="/Menu/nearby.html">ร้านอาหาร</a></li>
+          <li><a href="/login/Login.html">เข้าสู่ระบบ</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col">
+        <h4>ติดต่อ</h4>
+        <p><i class="fa-solid fa-location-dot" aria-hidden="true"></i> อุบลราชธานี, ไทย</p>
+      </div>
     </div>
-    <div class="footer-col">
-      <h4>ติดต่อ</h4>
-      <p><i class="fa-solid fa-location-dot"></i> อุบลราชธานี, ไทย</p>
+    <div class="footer-bottom">
+      <p>&copy; 2025 FoodFindGo. All rights reserved.</p>
     </div>
-  </div>
-  <div class="footer-bottom">
-    <p>&copy; 2025 FoodFindGo. All rights reserved.</p>
-  </div>
-</footer>
+  </footer>
 
   <script type="module" src="/Menu/nearby.js"></script>
   <script type="module" src="/script.js"></script>

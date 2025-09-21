@@ -1,16 +1,18 @@
-// src/models/Restaurant.js
 const mongoose = require('mongoose');
 const { Schema } = mongoose;
 
 const RestaurantSchema = new Schema({
-  // legacy (ช่วงเปลี่ยนผ่าน)
+  // legacy
   ownerUid: { type: String, index: true },
 
-  // ✅ หลายเจ้าของ
+  // หลายเจ้าของ
   owners:   { type: [String], default: [], index: true },
 
   name:     { type: String, required: true, trim: true },
   address:  { type: String, trim: true },
+
+  // ✅ เวลาเปิด-ปิด (ข้อความ)
+  hours:    { type: String, trim: true, default: '' },
 
   // GeoJSON: coordinates = [lng, lat]
   location: {
@@ -32,7 +34,7 @@ const RestaurantSchema = new Schema({
   phone: { type: String, trim: true },
   image: { type: String, trim: true },
 
-  // summary rating ถ้ามีใช้อยู่
+  // summary rating
   avgRating:   { type: Number, default: 0 },
   reviewCount: { type: Number, default: 0 },
   ratingSum:   { type: Number, default: 0 },
@@ -43,7 +45,7 @@ RestaurantSchema.index({ location: '2dsphere' });
 RestaurantSchema.virtual('lat').get(function(){ return this.location?.coordinates?.[1]; });
 RestaurantSchema.virtual('lng').get(function(){ return this.location?.coordinates?.[0]; });
 
-// ✅ เช็กสิทธิ์เจ้าของ
+// เช็กสิทธิ์เจ้าของ
 RestaurantSchema.methods.isOwner = function(uid) {
   if (!uid) return false;
   const mine = Array.isArray(this.owners) && this.owners.includes(uid);

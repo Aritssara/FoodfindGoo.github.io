@@ -10,7 +10,6 @@ const els = {
 };
 els.sortSelect && (els.sortSelect.value = (localStorage.getItem('nearbySort') || 'distance-asc'));
 
-
 let state = { lat: null, lng: null, shops: [], sort: localStorage.getItem('nearbySort') || 'distance-asc', filters: { openNow:false, minRating:0, maxDistance:RADIUS_M } };
 
 /* ===== Events ===== */
@@ -70,7 +69,6 @@ function onGeoError(err){
 /* ===== Fetch & Normalize ===== */
 async function fetchNearby(){
   els.foundText.textContent = "กำลังค้นหาร้าน...";
-  // พยายามเรียก /near ก่อน -> /restaurants?lat=... -> /restaurants
   const urls = [
     `${API_BASE}/api/restaurants?lat=${state.lat}&lng=${state.lng}&radius=${RADIUS_M}`,
     `${API_BASE}/api/restaurants`
@@ -113,7 +111,8 @@ function normalizeShop(s){
     ratingCount: Number.isFinite(s.ratingCount) ? s.ratingCount :
                  (Number.isFinite(s.reviewCount) ? s.reviewCount : 0),
     priceLevel: s.priceLevel || null,
-    openingHours: s.openingHours || null,
+    // ⬇️ สำคัญ: รองรับทั้งชื่อฟิลด์ hours (จากแอดมิน) และ openingHours (จากที่อื่น)
+    openingHours: (s.openingHours ?? s.hours ?? s.opening_hours ?? null),
     lat, lng,
     distance: dist
   };
@@ -148,18 +147,24 @@ function cardHTML(s){
   const openInfo   = getOpenStatus(s.openingHours);
 
   return `
-  <article class="card" data-id="${s.id}" role="button" tabindex="0" aria-label="ดูรายละเอียด ${esc(s.name)}" onclick="location.href='/Menu/shop.html?id=${s.id}'" onkeydown="if(event.key==='Enter'||event.key===' '){location.href='/Menu/shop.html?id=${s.id}'}">
+  <article class="card" data-id="${s.id}" role="button" tabindex="0" aria-label="ดูรายละเอียด ${esc(s.name)}"
+           onclick="location.href='/Menu/shop.html?id=${s.id}'"
+           onkeydown="if(event.key==='Enter'||event.key===' '){location.href='/Menu/shop.html?id=${s.id}'}">
     <div class="thumb">
       <img src="${s.image}" alt="${esc(s.name)}" loading="lazy" decoding="async" onerror="this.src='/assets/img/placeholder-shop.jpg'"/>
       <div class="badges">${priceBadge}${distBadge}</div>
     </div>
     <div class="body">
       <h3 class="title">${esc(s.name)}</h3>
-      <div class="row subtle">
+      <div class="row subtle" style="gap:8px;">
         <span class="rating"><i class="fa-solid fa-star"></i> ${(s.ratingAvg||0).toFixed(1)}</span>
         <span>(${s.ratingCount||0} รีวิว)</span>
         <span>•</span>
         <span class="status ${openInfo.class}">${openInfo.text}</span>
+      </div>
+      <div class="row subtle" style="margin-top:4px;">
+        <i class="fa-regular fa-clock" aria-hidden="true"></i>
+        <span aria-label="เวลาเปิดวันนี้">${openInfo.todayText || "ไม่ระบุเวลา"}</span>
       </div>
       <div class="address"><i class="fa-solid fa-location-dot"></i>
         <span>${esc(s.addressShort || "—")}</span>
@@ -189,26 +194,151 @@ function bindShare(list){
 }
 
 /* ===== Helpers ===== */
-function esc(str=""){ return str.replace(/[&<>"']/g, s=>({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;" }[s])); }
+function esc(str=""){ return String(str).replace(/[&<>"']/g, s=>({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;" }[s])); }
 function fmtDistance(m){ if (!Number.isFinite(m)) return "—"; return m<1000? `${Math.round(m)} m` : `${(m/1000).toFixed(1)} km`; }
 function haversineMeters(lat1, lon1, lat2, lon2){
   const R=6371000, toRad=d=>d*Math.PI/180, dLat=toRad(lat2-lat1), dLon=toRad(lon2-lon1);
   const a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLon/2)**2;
   return 2*R*Math.asin(Math.sqrt(a));
 }
-function getOpenStatus(opening){
-  try{
-    if(!opening) return { text:"ไม่ระบุเวลา", class:"closed" };
-    const now=new Date(), keys=["sun","mon","tue","wed","thu","fri","sat"], key=keys[now.getDay()];
-    const ranges=opening[key]||[], mins=now.getHours()*60+now.getMinutes();
-    let open=false, near=false;
-    for(const [a,b] of ranges){
-      const [ah,am]=a.split(":").map(Number), [bh,bm]=b.split(":").map(Number);
-      const st=ah*60+am, en=bh*60+bm;
-      if (mins>=st && mins<=en){ open=true; near=(en-mins)<=30; }
+
+const DAY_KEYS = ["sun","mon","tue","wed","thu","fri","sat"];
+// ✅ แมปชื่อวันภาษาไทย -> อังกฤษ
+const TH2EN = {
+  "อาทิตย์":"sun","จันทร์":"mon","อังคาร":"tue",
+  "พุธ":"wed","พฤหัสบดี":"thu","ศุกร์":"fri","เสาร์":"sat"
+};
+
+const PAD = n => String(n).padStart(2,"0");
+const toMins = (hhmm) => { const [h,m] = hhmm.split(":").map(Number); return (h*60 + (m||0) + 7*24*60)%(24*60); };
+const minsToHHMM = mins => `${PAD(Math.floor(mins/60)%24)}:${PAD(mins%60)}`;
+const nowLocal = () => new Date();
+
+/** แปลง openingHours “หลายรูปแบบ” -> { mon:[["09:00","18:00"], ...], ... } */
+function normalizeOpening(opening){
+  if (!opening) return null;
+
+  // 1) สตริงเดียวทุกวัน
+  if (typeof opening === "string"){
+    const t = opening.trim().toLowerCase();
+    if (!t) return null;
+
+    // 24 ชั่วโมง
+    if (/(ตลอด\s*24\s*ชั่วโมง|24\s*ชั่วโมง|24h|24-hour)/.test(t)) {
+      return Object.fromEntries(DAY_KEYS.map(k=>[k, [["00:00","24:00"]]]));
     }
-    if (open && near) return { text:"ใกล้ปิด", class:"soon" };
-    if (open) return { text:"เปิดอยู่", class:"open" };
-    return { text:"ปิดแล้ว", class:"closed" };
-  }catch{ return { text:"ไม่ระบุเวลา", class:"closed" }; }
+
+    // “เปิดทุกวัน 10:00-20:00”, “10.00 - 20.00”, “10:00–20:00”
+    const m = t.replaceAll(".",":").match(/(\d{1,2}:\d{2})\s*[-–]\s*(\d{1,2}:\d{2})/);
+    if (m){
+      const range = [[m[1], m[2]]];
+      return Object.fromEntries(DAY_KEYS.map(k=>[k, range]));
+    }
+    return null;
+  }
+
+  // 2) แบบ Google Places: periods
+  if (Array.isArray(opening.periods)) {
+    const map = Object.fromEntries(DAY_KEYS.map(k=>[k, []]));
+    for (const p of opening.periods){
+      if (!p?.open?.day || !p?.open?.time) continue;
+      const od = Number(p.open.day)||0;
+      const ct = p?.close?.time; // อาจไม่มี (24h)
+      const cd = Number(p?.close?.day ?? od) % 7;
+      const ot = p.open.time; // "HHmm"
+      const from = `${ot.slice(0,2)}:${ot.slice(2)}`;
+      const to   = ct ? `${ct.slice(0,2)}:${ct.slice(2)}` : "24:00";
+      // ข้ามวัน หรือเวลาปิด <= เวลาเปิด
+      if (ct && (od !== cd || toMins(to) <= toMins(from))) {
+        map[DAY_KEYS[od]].push([from,"24:00"]);
+        map[DAY_KEYS[(od+1)%7]].push(["00:00", to]);
+      } else {
+        map[DAY_KEYS[od]].push([from,to]);
+      }
+    }
+    return map;
+  }
+
+  // 3) อ็อบเจ็กต์รายวัน (รองรับคีย์ไทย/อังกฤษ และค่าทั้ง string/array)
+  const keys = Object.keys(opening || {});
+  const hasDaily = keys.length && keys.some(k => DAY_KEYS.includes(k) || TH2EN[k]);
+  if (hasDaily){
+    const map = {};
+    for (const kEn of DAY_KEYS){
+      const thKey = Object.keys(TH2EN).find(th => TH2EN[th] === kEn);
+      const v = opening[kEn] ?? opening[thKey];
+
+      if (!v){ map[kEn] = []; continue; }
+
+      if (typeof v === "string"){
+        const s = v.trim().toLowerCase().replaceAll(".",":");
+        if (/(ตลอด\s*24\s*ชั่วโมง|24\s*ชั่วโมง|24h|24-hour|^24$)/.test(s)) {
+          map[kEn] = [["00:00","24:00"]];
+          continue;
+        }
+        const m = s.match(/(\d{1,2}:\d{2})\s*[-–]\s*(\d{1,2}:\d{2})/);
+        map[kEn] = m ? [[m[1], m[2]]] : [];
+      } else if (Array.isArray(v)){
+        // [["10:00","14:00"], ["16:00","20:00"]] หรือ ["10:00","18:00"]
+        if (v.length && Array.isArray(v[0])) map[kEn] = v;
+        else if (v.length===2 && typeof v[0]==="string") map[kEn] = [v];
+        else map[kEn] = [];
+      } else {
+        map[kEn] = [];
+      }
+    }
+    return map;
+  }
+
+  return null;
+}
+
+/** สถานะเปิด/ปิด + เวลาเปิด/ปิดถัดไป + ช่วงของวันนี้ */
+function getOpenStatus(opening){
+  const map = normalizeOpening(opening);
+  if (!map) return { text:"ไม่ระบุเวลา", class:"closed", todayText:"" };
+
+  const now = nowLocal();
+  const dayIdx = now.getDay(); // 0=Sun
+  const minsNow = now.getHours()*60 + now.getMinutes();
+
+  const todayRanges = (map[DAY_KEYS[dayIdx]] || []).map(([a,b]) => [toMins(a), toMins(b=== "24:00" ? "23:59" : b)]);
+  let open = false, closeInMins = null, nextOpenInMins = null;
+
+  for (const [a,b] of todayRanges){
+    if (minsNow >= a && minsNow < b){
+      open = true;
+      closeInMins = Math.min(closeInMins ?? Infinity, b - minsNow);
+    } else if (minsNow < a){
+      nextOpenInMins = Math.min(nextOpenInMins ?? Infinity, a - minsNow);
+    }
+  }
+
+  // หาเวลาเปิดครั้งถัดไปในวันถัดไป (ถ้าวันนี้ไม่มีรอบเหลือ)
+  if (!open && (nextOpenInMins == null)){
+    for (let d=1; d<=7; d++){
+      const idx = (dayIdx + d) % 7;
+      const ranges = (map[DAY_KEYS[idx]] || []).map(([a,_b]) => [toMins(a), 0]);
+      if (ranges.length){
+        nextOpenInMins = (24*60 - minsNow) + (d-1)*24*60 + (ranges[0][0]);
+        break;
+      }
+    }
+  }
+
+  const todayText = (map[DAY_KEYS[dayIdx]]||[]).length
+    ? (map[DAY_KEYS[dayIdx]].map(([a,b]) => `${a}–${b}`).join(", "))
+    : "ปิดทั้งวัน";
+
+  if (open){
+    const soon = closeInMins !== null && closeInMins <= 30;
+    const at = minsToHHMM(minsNow + (closeInMins||0));
+    return { text: soon ? `ใกล้ปิด • ปิด ${at}` : `เปิดอยู่ • ปิด ${at}`, class: soon ? "soon" : "open", todayText };
+  } else {
+    if (nextOpenInMins != null){
+      const at = minsToHHMM(minsNow + nextOpenInMins);
+      return { text:`ปิดอยู่ • เปิด ${at}`, class:"closed", todayText };
+    }
+    return { text:"ปิดอยู่", class:"closed", todayText };
+  }
 }

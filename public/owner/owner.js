@@ -102,7 +102,7 @@ function initLayout(){
   $$(".side-link").forEach(a => a.addEventListener("click", (e) => {
     e.preventDefault();
     if (a.classList.contains("side-logout") || a.dataset.tab === "logout"){
-      handleLogout(e); 
+      handleLogout(e);
       return;
     }
     showTab(a.dataset.tab);
@@ -170,39 +170,60 @@ function renderMenuRows(list){
 /* ========== pick restaurant & data flow ========== */
 function selectRestaurantFromMe(me){
   // รองรับทั้งโครงสร้างเดิม (me.restaurant) และใหม่ (me.restaurants[])
-  const qs = new URLSearchParams(location.search);
-  let rid =
-    qs.get('restaurantId') ||
-    localStorage.getItem('owner_rid') ||
-    (me.restaurant?._id) ||
-    (Array.isArray(me.restaurants) && me.restaurants.length === 1 ? me.restaurants[0]._id : null);
+  const qs     = new URLSearchParams(location.search);
+  const fromQS = qs.get('restaurantId');
+  const fromLS = localStorage.getItem('owner_rid');
+  const list   = Array.isArray(me.restaurants) ? me.restaurants : (me.restaurant ? [me.restaurant] : []);
 
-  if (!rid && Array.isArray(me.restaurants) && me.restaurants.length > 0) {
-    rid = me.restaurants[0]._id;
-  }
+  // ลำดับความสำคัญ: query -> LS -> legacy (me.restaurant) -> ร้านแรก
+  let rid = fromQS || fromLS || (me.restaurant?._id || null) || (list[0]?._id || null);
+
+  // ถ้า rid ไม่อยู่ใน list (เช่น ร้านถูกลบ/สิทธิ์หมด) → fallback ร้านแรก
+  let r = rid ? (list.find(x => x._id === rid) || null) : null;
+  if (!r && list.length) { r = list[0]; rid = r._id; }
+
   if (rid) localStorage.setItem('owner_rid', rid);
-
-  // หา object ร้านที่เลือก
-  let r = null;
-  if (me.restaurant && me.restaurant._id === rid) r = me.restaurant;
-  if (!r && Array.isArray(me.restaurants)) r = me.restaurants.find(x => x._id === rid) || null;
-
   return { rid, restaurant: r };
 }
 
 async function loadAll(){
   // ดึงข้อมูลตัวเอง + เลือกร้าน
   const me = await apiOwner("/me");
-  const picked = selectRestaurantFromMe(me);
+  let picked = selectRestaurantFromMe(me);
 
-  S.me = me;
+  S.me  = me;
   S.rid = picked.rid || null;
 
-  // โหลดเมนู (ต้องมี restaurantId)
-  S.menus = S.rid
-    ? await apiOwner(`/menus?restaurantId=${encodeURIComponent(S.rid)}`).catch(()=>[])
-    : [];
+  // helper: โหลดเมนูของร้านใดร้านหนึ่งผ่าน root API (เหมือนฝั่งเว็บหลัก)
+  const fetchMenusByRid = async (rid) => {
+    if (!rid) return [];
+    try{
+      return await apiRoot(`/menus?restaurantId=${encodeURIComponent(rid)}&limit=500`);
+    }catch{ return []; }
+  };
 
+  // 1) โหลดของร้านที่เลือกก่อน
+  let menus = await fetchMenusByRid(S.rid);
+
+  // 2) ถ้าไม่มีเมนู → ไล่หาร้านแรกที่ "มีเมนู" แล้วสลับอัตโนมัติ
+  if ((!menus || menus.length === 0) && Array.isArray(me.restaurants) && me.restaurants.length){
+    for (const r of me.restaurants){
+      const list = await fetchMenusByRid(r._id);
+      if (list && list.length){
+        S.rid = r._id;
+        localStorage.setItem('owner_rid', S.rid);
+        // sync URL ให้ตรงร้านที่มีข้อมูล
+        const url = new URL(location.href);
+        url.searchParams.set('restaurantId', S.rid);
+        history.replaceState(null, '', url.toString());
+        picked = { rid: r._id, restaurant: r };
+        menus  = list;
+        break;
+      }
+    }
+  }
+
+  S.menus  = menus || [];
   S.loaded = true;
 
   if(!picked.restaurant){
@@ -222,10 +243,17 @@ async function loadAll(){
     sel.innerHTML = list.map(r =>
       `<option value="${r._id}" ${r._id===S.rid ? 'selected':''}>${esc(r.name)}</option>`
     ).join('');
-    sel.onchange = (e) => {
+    sel.onchange = async (e) => {
       const newRid = e.target.value;
       localStorage.setItem('owner_rid', newRid);
-      location.search = `?restaurantId=${encodeURIComponent(newRid)}`;
+      // โหลดเมนูของร้านที่เลือกทันที
+      S.rid   = newRid;
+      S.menus = await fetchMenusByRid(newRid);
+      renderMenuRows(S.menus);
+      // sync URL
+      const url = new URL(location.href);
+      url.searchParams.set('restaurantId', newRid);
+      history.replaceState(null, '', url.toString());
     };
   }
 }
@@ -281,7 +309,6 @@ function bindActions(){
         : await apiOwner("/restaurant",       { method:"POST", body });
 
       // อัปเดต state และ UI
-      // รองรับทั้งโครงสร้าง me.restaurant และ me.restaurants
       if (Array.isArray(S.me?.restaurants)) {
         const i = S.me.restaurants.findIndex(x => x._id === r._id);
         if (i >= 0) S.me.restaurants[i] = r; else S.me.restaurants.unshift(r);

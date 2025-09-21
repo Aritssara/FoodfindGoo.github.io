@@ -16,9 +16,20 @@ const MenuSchema = new mongoose.Schema({
   isFeatured: { type: Boolean, default: false },
   featuredBoost: { type: Number, default: 0 },
 
-  // ===== Analytics =====
+  // ===== Analytics (แก้/เพิ่ม) =====
+  // total = pageview ทั้งหมด (ทุกครั้ง)
+  // views = pageview แบบ unique ต่อวัน  (กันซ้ำด้วย uniqueKeys)
+  // clicks = จำนวนคลิกจากหน้าลิสต์เพื่อเข้าไปดูรายละเอียด
+  // clickKeys = กันซ้ำคลิกแบบ unique ต่อวัน (ถ้าต้องการอ่านค่า unique click)
+  // * uniqueKeys / clickKeys เก็บเป็น "YYYY-MM-DD|<vuid>" และไม่ select ออกมาเพื่อลด payload
   stats: {
+    total: { type: Number, default: 0 },
     views: { type: Number, default: 0 },
+    uniqueKeys: { type: [String], default: [], select: false },
+
+    clicks: { type: Number, default: 0 },
+    clickKeys: { type: [String], default: [], select: false },
+
     impressions: [{
       at: { type: Date, default: Date.now },
       ipHash: String,

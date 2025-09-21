@@ -12,193 +12,154 @@ let ALL = [];
 let GROUPS = {};
 let ACTIVE_CAT = "ทั้งหมด";
 
+/* ========= Safe utils ========= */
+const esc = (s='') => String(s)
+  .replaceAll('&','&amp;').replaceAll('<','&lt;')
+  .replaceAll('>','&gt;').replaceAll('"','&quot;')
+  .replaceAll("'",'&#39;');
+
 /* ========= View Track (กันยิงซ้ำต่อ session) ========= */
 const VIEW_STORAGE_KEY = "ffg_menu_viewed_ids_v1";
-const VIEWED_SET = loadViewedSet();
+const VIEWED_SET = loadSet(VIEW_STORAGE_KEY);
 
-function loadViewedSet() {
-  try {
-    const raw = sessionStorage.getItem(VIEW_STORAGE_KEY);
+function loadSet(key){
+  try{
+    const raw = sessionStorage.getItem(key);
     const arr = raw ? JSON.parse(raw) : [];
     return new Set(Array.isArray(arr) ? arr : []);
-  } catch { return new Set(); }
+  }catch{ return new Set(); }
 }
-function markViewed(id) {
-  if (!id) return;
-  VIEWED_SET.add(id);
-  try {
-    sessionStorage.setItem(VIEW_STORAGE_KEY, JSON.stringify([...VIEWED_SET]));
-  } catch {}
+function persistSet(key, set){
+  try{ sessionStorage.setItem(key, JSON.stringify([...set])); }catch{}
 }
-function hasViewed(id) {
-  return VIEWED_SET.has(id);
-}
+function markViewed(id){ if(!id) return; VIEWED_SET.add(id); persistSet(VIEW_STORAGE_KEY, VIEWED_SET); }
+const hasViewed = (id) => VIEWED_SET.has(id);
+
+/* ========= Click Track ========= */
+const CLICK_STORAGE_KEY = "ffg_menu_clicked_ids_v1";
+const CLICKED_SET = loadSet(CLICK_STORAGE_KEY);
+function markClicked(id){ if(!id) return; CLICKED_SET.add(id); persistSet(CLICK_STORAGE_KEY, CLICKED_SET); }
+const hasClicked = (id) => CLICKED_SET.has(id);
 
 /* ========= Utils ========= */
-// จัดกลุ่มเมนูตามหมวด (รองรับทั้ง category และ type)
-function groupByCategory(items) {
+// จัดกลุ่มหมวดแบบ normalize (ตัดช่องว่าง/ตัวพิมพ์เล็ก)
+const norm = (s='') => s.toString().trim();
+const normKey = (s='') => norm(s).toLowerCase();
+
+function groupByCategory(items){
   const map = {};
-  for (const m of items) {
-    const cat = (m.category || m.type || "อื่นๆ").toString().trim();
-    (map[cat] ||= []).push(m);
+  for(const m of items){
+    const raw = norm(m.category || m.type || "อื่นๆ");
+    const key = raw ? normKey(raw) : "อื่นๆ";
+    (map[key] ||= { label: raw || "อื่นๆ", items: [] }).items.push(m);
   }
   return map;
 }
 
-/* ---- หา restaurant id/slug จากอ็อบเจ็กต์เมนู ---- */
-function getRestaurantKey(m) {
-  if (!m || typeof m !== "object") return null;
-
-  const direct =
-    m.restaurantId ||
-    m.shopId ||
-    m.shop_id ||
-    m.restaurant_id;
-
+/* หา restaurant key */
+function getRestaurantKey(m){
+  if(!m || typeof m !== "object") return null;
+  const direct = m.restaurantId || m.shopId || m.shop_id || m.restaurant_id;
   if (direct) return direct;
-
   const r = m.restaurant || m.shop || {};
   return r._id || r.id || r.slug || null;
 }
 
-/* ดึง _id ของเมนูให้แน่ใจ */
-function getMenuId(m) {
-  return m?._id || m?.id || null;
-}
+/* ดึง _id เมนูให้แน่ใจ */
+const getMenuId = (m) => m?._id || m?.id || null;
 
-/* ไปหน้าแสดงรายละเอียด (shop.html) โดยพยายามส่ง "id" ก่อน แล้วค่อย fallback เป็น "menu" */
-function gotoDetail(menuObj) {
+/* ไปหน้า shop.html */
+function gotoDetail(menuObj){
   const key = getRestaurantKey(menuObj);
   const url = new URL("/Menu/shop.html", location.origin);
-
-  if (key) {
+  if (key){
     url.searchParams.set("id", key);
-    // แนบเมนูเพื่อให้หน้า Shop โฟกัสเมนูนั้นได้ (ถ้าอยากใช้)
     if (menuObj?._id) url.searchParams.set("menuId", menuObj._id);
     else if (menuObj?.name) url.searchParams.set("menu", menuObj.name);
-  } else {
-    // ไม่มีรหัสร้านจริง ๆ -> fallback เดิม (อาจทำให้ได้โหมดเดโม่)
+  }else{
     if (menuObj?.name) url.searchParams.set("menu", menuObj.name);
-    console.warn("[menu.js] ไม่มี restaurant id/slug ในเมนูนี้, ส่งเฉพาะชื่อเมนูไปที่ shop.html");
+    console.warn("[menu.js] ไม่มี restaurant id/slug ในเมนูนี้");
   }
-
   window.location.href = url.toString();
 }
 
-// ฟอร์แมตราคาเป็นสกุลบาท (THB)
-const fmtTHB = new Intl.NumberFormat("th-TH", {
-  style: "currency",
-  currency: "THB",
-  maximumFractionDigits: 0
-});
-
-// ดึงราคาแบบปลอดภัย (รองรับหลายเคส)
-function getPrice(m) {
+/* ราคา */
+const fmtTHB = new Intl.NumberFormat("th-TH",{ style:"currency", currency:"THB", maximumFractionDigits:0 });
+function getPrice(m){
   if (typeof m?.price === "number") return fmtTHB.format(m.price);
-  if (typeof m?.price === "string" && m.price.trim()) return m.price.trim();
-  if (m?.price?.min || m?.price?.max) {
-    const min = m.price.min ? fmtTHB.format(m.price.min) : null;
-    const max = m.price.max ? fmtTHB.format(m.price.max) : null;
+  if (typeof m?.price === "string" && m.price.trim()) return esc(m.price.trim());
+  if (m?.price?.min || m?.price?.max){
+    const min = Number.isFinite(m.price.min) ? fmtTHB.format(m.price.min) : null;
+    const max = Number.isFinite(m.price.max) ? fmtTHB.format(m.price.max) : null;
     if (min && max) return `${min} - ${max}`;
     if (min) return min;
     if (max) return max;
   }
   return "ราคาไม่ระบุ";
 }
+const getViews = (m) => Number.isFinite(m?.stats?.views ?? m?.views) ? (m.stats?.views ?? m.views) : 0;
 
-// ดึงยอดวิวแบบปลอดภัย
-function getViews(m) {
-  const v = (m?.stats?.views ?? m?.views ?? 0);
-  return Number.isFinite(v) ? v : 0;
-}
-
-/* ========= Render: หมวด ========= */
-function renderCategories(groups) {
+/* ========= หมวด ========= */
+function renderCategories(groups){
+  if (!catWrap) return;
   catWrap.innerHTML = "";
 
-  const cats = ["ทั้งหมด", ...Object.keys(groups).sort()];
-  for (const cat of cats) {
-    const btn = document.createElement("button");
-    btn.className = "cat-chip" + (cat === ACTIVE_CAT ? " active" : "");
+  // รายการหมวด
+  const cats = [{ key:"ทั้งหมด", label:"ทั้งหมด" }, ...Object.entries(groups)
+    .sort((a,b)=> a[1].label.localeCompare(b[1].label,"th"))
+    .map(([key, val]) => ({ key, label: val.label }))];
 
-    // วงกลมรูป/ไอคอน
+  for (const {key,label} of cats){
+    const btn = document.createElement("button");
+    btn.className = "cat-chip" + ((key==="ทั้งหมด" && ACTIVE_CAT==="ทั้งหมด") || (key!=="ทั้งหมด" && normKey(ACTIVE_CAT)===key) ? " active" : "");
+
     const thumb = document.createElement("div");
     thumb.className = "thumb";
-    if (cat === "ทั้งหมด") {
-      const span = document.createElement("span");
-      span.textContent = "🍽️";
+
+    if (key === "ทั้งหมด"){
+      const span = document.createElement("span"); span.textContent = "🍽️";
       thumb.appendChild(span);
-    } else {
-      const first = groups[cat]?.[0];
+    }else{
+      const first = groups[key]?.items?.[0];
       const img = document.createElement("img");
       img.src = (first && first.image) ? first.image : FALLBACK_IMG;
-      img.alt = cat;
+      img.alt = label;
+      img.loading = "lazy";
+      img.decoding = "async";
+      img.referrerPolicy = "no-referrer";
+      img.onerror = () => { img.src = FALLBACK_IMG; };
       thumb.appendChild(img);
     }
 
-    // ชื่อหมวด
-    const label = document.createElement("div");
-    label.className = "label";
-    label.textContent = cat;
+    const lab = document.createElement("div");
+    lab.className = "label";
+    lab.textContent = label;
 
     btn.appendChild(thumb);
-    btn.appendChild(label);
+    btn.appendChild(lab);
 
-    // เปลี่ยนหมวด
-    btn.addEventListener("click", () => {
-      ACTIVE_CAT = cat;
+    btn.addEventListener("click", ()=>{
+      ACTIVE_CAT = label;
       renderCategories(groups);
       renderGrid();
 
-      // อัปเดต URL (deep-link) เป็น ?cat=<ชื่อหมวด>
       const url = new URL(location.href);
-      if (cat === "ทั้งหมด") url.searchParams.delete("cat");
-      else url.searchParams.set("cat", cat);
-      history.replaceState(null, "", url.toString());
+      if (label === "ทั้งหมด") url.searchParams.delete("cat");
+      else url.searchParams.set("cat", label);
+      history.replaceState(null,"",url.toString());
     });
 
     catWrap.appendChild(btn);
   }
 }
 
-/* ========= ยิงนับวิวแบบยูนีกเมื่อการ์ดโผล่ ========= */
-async function pingMenuView(menuId, viewsCountEl) {
-  try {
-    if (!menuId || hasViewed(menuId)) return;
-    markViewed(menuId); // กันกดซ้ำใน session นี้ก่อนเลย (optimistic)
-
-    // อัปเดต UI ทันที (optimistic)
-    if (viewsCountEl) {
-      const current = parseInt((viewsCountEl.textContent || "0").replace(/[^\d]/g, ""), 10) || 0;
-      viewsCountEl.textContent = (current + 1).toLocaleString("th-TH");
-    }
-
-    const res = await fetch(`${API_URL}/${menuId}/view`, { method: "POST" });
-    // ถ้าเซิร์ฟเวอร์ตอบ increased=false แปลว่าเคยนับไปแล้ว (duplicate)
-    if (res.ok) {
-      const data = await res.json().catch(()=>null);
-      if (data && data.ok === true && data.increased === false && viewsCountEl) {
-        // ย้อน UI ถ้าไม่ได้เพิ่มจริง (กรณีหน้าอื่นเพิ่งนับไป)
-        // หมายเหตุ: ส่วนใหญ่จะ increased=true เมื่อ session นี้ยังไม่เคย
-        const current = parseInt((viewsCountEl.textContent || "0").replace(/[^\d]/g, ""), 10) || 0;
-        if (current > 0) {
-          viewsCountEl.textContent = (current - 1).toLocaleString("th-TH");
-        }
-      }
-    }
-  } catch {
-    // เงียบไว้ ไม่ให้กระทบ UX
-  }
-}
-
-/* ========= Render: กริดเมนู ========= */
-let intersectionObserver = null;
-function ensureObserver() {
-  if (intersectionObserver) return intersectionObserver;
+/* ========= นับวิวเมื่อการ์ดโผล่ ========= */
+let io = null;
+function ensureObserver(){
+  if (io) return io;
   if (!("IntersectionObserver" in window)) return null;
-
-  intersectionObserver = new IntersectionObserver((entries, obs) => {
-    entries.forEach(en => {
+  io = new IntersectionObserver((entries, obs)=>{
+    entries.forEach(en=>{
       if (!en.isIntersecting) return;
       const card = en.target;
       const menuId = card.getAttribute("data-menu-id");
@@ -206,60 +167,104 @@ function ensureObserver() {
       if (menuId) pingMenuView(menuId, viewsCountEl);
       obs.unobserve(card);
     });
-  }, { threshold: 0.4 }); // โผล่อย่างน้อย ~40%
-
-  return intersectionObserver;
+  },{ threshold:0.4 });
+  return io;
 }
 
-function renderGrid() {
+async function pingMenuView(menuId, viewsCountEl){
+  try{
+    if (!menuId || hasViewed(menuId)) return;
+    markViewed(menuId); // optimistic
+
+    // optimistic UI
+    if (viewsCountEl){
+      const current = parseInt((viewsCountEl.textContent||"0").replace(/[^\d]/g,""),10) || 0;
+      viewsCountEl.textContent = (current+1).toLocaleString("th-TH");
+    }
+
+    const res = await fetch(`${API_URL}/${encodeURIComponent(menuId)}/view`, { method:"POST", keepalive:true });
+    if (res.ok){
+      const data = await res.json().catch(()=>null);
+      if (data && data.ok === true && data.uniqueAdded === 0 && viewsCountEl){
+        const current = parseInt((viewsCountEl.textContent||"0").replace(/[^\d]/g,""),10) || 0;
+        if (current>0) viewsCountEl.textContent = (current-1).toLocaleString("th-TH");
+      }
+    }
+  }catch{/* เงียบไว้ */}
+}
+
+function pingMenuClick(menuId){
+  try{
+    if (!menuId || hasClicked(menuId)) return;
+    markClicked(menuId);
+    const body = "{}";
+    const blob = new Blob([body], { type:"application/json" });
+    if (navigator.sendBeacon){
+      navigator.sendBeacon(`${API_URL}/${encodeURIComponent(menuId)}/click`, blob);
+    }else{
+      fetch(`${API_URL}/${encodeURIComponent(menuId)}/click`, {
+        method:"POST", headers:{ "Content-Type":"application/json" }, body, keepalive:true
+      }).catch(()=>{});
+    }
+  }catch{}
+}
+
+/* ========= Render กริด ========= */
+function renderGrid(){
+  if (!listEl) return;
+  // เคลียร์ observer เก่า (ป้องกันหลง observe องค์ประกอบที่ถูกลบ)
+  if (io) { io.disconnect(); io = null; }
+
   listEl.innerHTML = "";
 
-  const items = (ACTIVE_CAT === "ทั้งหมด") ? ALL : (GROUPS[ACTIVE_CAT] || []);
-  if (items.length === 0) {
+  const items = (ACTIVE_CAT === "ทั้งหมด")
+    ? ALL
+    : (GROUPS[normKey(ACTIVE_CAT)]?.items || []);
+
+  if (items.length === 0){
     stateEl.textContent = "ไม่มีเมนูในหมวดนี้";
     return;
   }
   stateEl.textContent = "";
 
-  const io = ensureObserver();
+  const observer = ensureObserver();
 
-  for (const m of items) {
+  for (const m of items){
     const li = document.createElement("li");
     li.className = "card";
 
-    const name = m.name || "-";
+    const name = esc(m.name || "-");
     const img  = m.image || FALLBACK_IMG;
-    const desc = (m.description || m.review || "");
+    const desc = esc(m.description || m.review || "");
     const priceText = getPrice(m);
     const viewsText = getViews(m).toLocaleString("th-TH");
     const menuId = getMenuId(m);
-
-    // เก็บ menuId ไว้ที่การ์ด เพื่อให้อ่านตอนโผล่ได้
     if (menuId) li.setAttribute("data-menu-id", menuId);
 
     li.innerHTML = `
-      <img src="${img}" alt="${name}" />
+      <img src="${esc(img)}" alt="${name}" class="card-img"
+           loading="lazy" decoding="async" referrerpolicy="no-referrer" />
       <h3 class="card-title">${name}</h3>
       ${desc ? `<p class="card-desc muted">${desc}</p>` : ""}
-
       <div class="meta">
         <span class="badge price">${priceText}</span>
         <span class="badge"><i>👁</i> <span class="views-count">${viewsText}</span> วิว</span>
       </div>
-
-      <button class="content-btn">ดูรายละเอียด</button>
+      <button class="content-btn" type="button">ดูรายละเอียด</button>
     `;
 
-    // กดดูรายละเอียด
-    li.querySelector(".content-btn").addEventListener("click", () => gotoDetail(m));
+    // รูปแตก = fallback
+    li.querySelector(".card-img").addEventListener("error", (e)=>{ e.currentTarget.src = FALLBACK_IMG; });
+
+    const go = () => { if (menuId) pingMenuClick(menuId); gotoDetail(m); };
+    li.querySelector(".content-btn")?.addEventListener("click", go);
+    li.querySelector(".card-img")?.addEventListener("click", go);
+    li.querySelector(".card-title")?.addEventListener("click", go);
 
     listEl.appendChild(li);
 
-    // สร้าง Observer ต่อการ์ด
-    if (io && menuId && !hasViewed(menuId)) {
-      io.observe(li);
-    } else if (!io && menuId && !hasViewed(menuId)) {
-      // เบราว์เซอร์เก่าไม่มี IntersectionObserver → ยิงทันที
+    if (observer && menuId && !hasViewed(menuId)) observer.observe(li);
+    else if (!observer && menuId && !hasViewed(menuId)) {
       const viewsCountEl = li.querySelector(".views-count");
       pingMenuView(menuId, viewsCountEl);
     }
@@ -267,24 +272,23 @@ function renderGrid() {
 }
 
 /* ========= Data ========= */
-async function loadMenus() {
+async function loadMenus(){
   stateEl.textContent = "กำลังโหลดเมนูอาหาร...";
-  try {
-    const res = await fetch(API_URL);
+  try{
+    const res = await fetch(API_URL, { method:"GET" });
     if (!res.ok) throw new Error("โหลดข้อมูลไม่สำเร็จ");
     const data = await res.json();
     stateEl.textContent = "";
     return Array.isArray(data) ? data : [];
-  } catch (err) {
-    console.error(err);
+  }catch(e){
+    console.error(e);
     stateEl.textContent = "❌ โหลดเมนูไม่สำเร็จ";
     return [];
   }
 }
 
 /* ========= Init ========= */
-(async function init() {
-  // รองรับเปิดหน้าพร้อมพารามิเตอร์ ?cat=<ชื่อหมวด>
+(async function init(){
   const url = new URL(location.href);
   ACTIVE_CAT = url.searchParams.get("cat") || "ทั้งหมด";
 
